@@ -678,6 +678,7 @@ int uk_vma_map(struct uk_vas *vas, __vaddr_t *vaddr, __sz len,
 			return -ENOMEM;
 
 		vma->name = __NULL;
+		vma->pf_flag = 0;
 	}
 
 	UK_ASSERT(vma);
@@ -1091,6 +1092,9 @@ int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 		lvl   = MAX(ctx.vma->page_lvl, PAGE_LEVEL);
 		flags = 0;
 	}
+
+	/* Add VMA-specific page fault flag to the page fault */
+	flags |= ctx.vma->pf_flag;
 
 	vbase = PAGE_Lx_ALIGN_DOWN(vaddr, lvl);
 

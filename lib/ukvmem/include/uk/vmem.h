@@ -127,6 +127,9 @@ struct uk_vma {
 
 	/** Optional name of the VMA */
 	const char *name;
+	/** Flag that will be passed to the page fault handler (see PAGE_FLAG_*)
+	 */
+	unsigned long pf_flag;
 };
 
 /** Page fault context */
