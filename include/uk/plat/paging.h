@@ -88,6 +88,11 @@ struct uk_pagetable {
 #define PAGE_FLAG_CLONE_NEW	0x01 /* Create an empty page table */
 
 /**
+ * Getter for last_pte value
+ */
+__pte_t ukplat_get_last_pte(void);
+
+/**
  * Returns the active page table (the one that defines the virtual address
  * space at the moment of the execution of this function).
  */

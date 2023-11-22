@@ -91,6 +91,15 @@ static unsigned int pg_page_largest_level = PAGE_LEVEL;
 static struct uk_pagetable kernel_pt;
 static struct uk_pagetable *pg_active_pt;
 
+#ifdef CONFIG_OBLIVIUM
+static __pte_t last_pte;
+
+__pte_t ukplat_get_last_pte(void)
+{
+	return last_pte;
+}
+#endif
+
 struct uk_pagetable *ukplat_pt_get_active(void)
 {
 	return pg_active_pt;
@@ -108,6 +117,7 @@ int ukplat_pt_set_active(struct uk_pagetable *pt)
 
 	return 0;
 }
+
 
 static int pg_pt_clone(struct uk_pagetable *pt_dst, struct uk_pagetable *pt_src,
 		       unsigned long flags)
@@ -693,8 +703,15 @@ TOO_BIG:
 
 		if (!(flags & PAGE_FLAG_KEEP_PTES))
 			pte = template;
-		else
+		else {
+#ifdef CONFIG_OBLIVIUM
+			/* HACK: backing up the last page table entry to access
+			 * it in the page fault handler, since PTE address field
+			 * is cleared after */
+			last_pte = pte;
+#endif
 			template_level = lvl;
+		}
 
 		pte = pgarch_pte_create(paddr, attr, lvl, pte, template_level);
 
