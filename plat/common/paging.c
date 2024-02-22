@@ -574,6 +574,7 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 		while (lvl > to_lvl) {
 			/* We are too high and need to walk further down */
 			rc = ukarch_pte_read(pt_vaddr, lvl, pte_idx, &pte);
+
 			if (unlikely(rc))
 				return rc;
 
@@ -601,6 +602,29 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 				/* There is nothing here, not even a page table.
 				 * So allocate a new one and link it.
 				 */
+				if (mapx && (flags & PAGE_FLAG_MAPX_PT_PAGES)) {
+					UK_ASSERT(mapx->map);
+					rc = mapx->map(pt, vaddr,
+						       pt_vaddr_cache[lvl],
+						       lvl, &pte, mapx->ctx);
+					uk_pr_debug("Mapped pte: 0x%lx\n", pte);
+
+					if (rc) {
+						if (rc
+						    == UKPLAT_PAGE_MAPX_ESKIP) {
+							pt_vaddr =
+							    pgarch_pt_pte_to_vaddr(
+								pt, pte, lvl);
+							// uk_pr_info("Got vaddr 0x%lx\n", pt_vaddr);
+							// uk_pr_info("Got paddr 0x%lx\n", PT_Lx_PTE_PADDR(pte, lvl));
+							goto NEXT_LEVEL;
+						}
+						else {
+							UK_CRASH("Unknown rc %d\n", rc);
+						}
+					}
+				}
+
 				rc = pg_pt_alloc(pt, &pt_vaddr, &pt_paddr,
 						 lvl - 1);
 				if (unlikely(rc))
@@ -620,7 +644,7 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 					return rc;
 				}
 			}
-
+NEXT_LEVEL:
 			UK_ASSERT(lvl > PAGE_LEVEL);
 			lvl--;
 
