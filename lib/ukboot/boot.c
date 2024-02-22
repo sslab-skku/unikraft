@@ -90,6 +90,40 @@
 #include <uk/plat/tls.h>
 #include "banner.h"
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#include <uk/asm/cfi.h>
+
+/* Redeclaration */
+void __noreturn lcpu_arch_jump_to(void *sp, ukplat_lcpu_entry_t entry)
+{
+	__asm__ (
+		"movq	%0, %%rsp\n"
+
+		/* According to System V AMD64 the stack pointer must be
+		 * aligned to 16-bytes. In other words, the value (RSP+8) must
+		 * be a multiple of 16 when control is transferred to the
+		 * function entry point (i.e., the compiler expects a
+		 * misalignment due to the return address having been pushed
+		 * onto the stack).
+		 */
+		"andq	$~0xf, %%rsp\n"
+		"subq	$0x8, %%rsp\n"
+
+#if !__OMIT_FRAMEPOINTER__
+		"xorq	%%rbp, %%rbp\n"
+#endif /* __OMIT_FRAMEPOINTER__ */
+
+		"jmp	*%1\n"
+		:
+		: "r"(sp), "r"(entry)
+		: /* clobbers not needed */);
+
+	/* just make the compiler happy about returning function */
+	__builtin_unreachable();
+}
+#endif
+
 #if CONFIG_LIBUKINTCTLR
 #include <uk/intctlr.h>
 #endif /* CONFIG_LIBUKINTCTLR */
@@ -159,6 +193,7 @@ static struct uk_alloc *heap_init()
 	alloc_pages = free_pages - PT_PAGES(free_pages);
 
 	vaddr = heap_base;
+
 	rc = uk_vma_map_anon(&kernel_vas, &vaddr,
 			     (alloc_pages + HEAP_INITIAL_PAGES) << PAGE_SHIFT,
 			     PAGE_ATTR_PROT_RW, UK_VMA_MAP_UNINITIALIZED,
@@ -170,6 +205,31 @@ static struct uk_alloc *heap_init()
 			     (alloc_pages - HEAP_INITIAL_PAGES) << PAGE_SHIFT);
 	if (unlikely(rc))
 		return NULL;
+
+#if CONFIG_OBLIVIUM_HEAP
+	/* We now initialize the real heap allocator that is used by rest of the
+	  *program. A new
+	 **/
+	/* TODO: need to somehow process existing mappings */
+	/* Just gonna exclude them from oblivious mappings  for now */
+#define OBLIVIUM_HEAP_BASE 0x600000000
+	// vaddr = heap_base + (alloc_pages << PAGE_SHIFT);
+	vaddr = OBLIVIUM_HEAP_BASE;
+	oblivium_mem_init();
+
+	alloc_pages = oblivium_get_heap_pages();
+
+	rc = oblivium_map_heap_mem(&kernel_vas, &vaddr,
+				   (alloc_pages) << PAGE_SHIFT);
+	if (unlikely(rc))
+		return NULL;
+
+	a = uk_alloc_init((void *)vaddr,
+			  alloc_pages << PAGE_SHIFT);
+	if (unlikely(!a))
+		return NULL;
+#endif /* CONFIG_OBLIVIUM_HEAP */
+
 #else /* CONFIG_LIBUKVMEM */
 	free_pages  = pt->fa->free_memory >> PAGE_SHIFT;
 	alloc_pages = free_pages - PT_PAGES(free_pages);
@@ -215,11 +275,42 @@ static struct uk_alloc *heap_init()
 	return a;
 }
 
+
+#if CONFIG_OBLIVIUM
+/* We define these as global for easier stack switching, as we will need to
+ * jump to another stack */
+static char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
+int argc = 0;
+
+static void __noreturn oblivium_entry(void)
+{
+	ukarch_cfi_unwind_end();
+
+	int rc, i;
+	uk_pr_info("Calling main(%d, [", argc);
+	for (i = 0; i < argc; ++i) {
+		uk_pr_info("'%s'", argv[i]);
+		if ((i + 1) < argc)
+			uk_pr_info(", ");
+	}
+	uk_pr_info("])\n");
+
+	rc = main(argc, argv);
+	uk_pr_info("main returned %d, halting system\n", rc);
+	rc = (rc != 0) ? UKPLAT_CRASH : UKPLAT_HALT;
+
+	ukplat_terminate(rc); /* does not return */
+}
+
+#endif
+
 /* defined in <uk/plat.h> */
 void ukplat_entry_argp(char *arg0, char *argb, __sz argb_len)
 {
+#if !CONFIG_OBLIVIUM
 	static char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
 	int argc = 0;
+#endif
 
 	if (arg0) {
 		argv[0] = arg0;
@@ -304,6 +395,11 @@ void ukplat_entry(int argc, char *argv[])
 		if (unlikely(rc != 0))
 			UK_CRASH("Could not set the platform memory allocator\n");
 	}
+
+#if CONFIG_OBLIVIUM_STACK
+	void* oblivium_stack = oblivium_setup_stack();
+
+#endif
 
 	/* Allocate a TLS for this execution context */
 	tls = uk_memalign(a,
@@ -407,6 +503,11 @@ void ukplat_entry(int argc, char *argv[])
 	}
 #endif /* CONFIG_LIBPOSIX_ENVIRON */
 
+#if CONFIG_OBLIVIUM_STACK
+	uk_pr_info("Switch from boot stack to oblivium stack @%p\n",
+		   oblivium_stack);
+	lcpu_arch_jump_to(oblivium_stack, oblivium_entry);
+#else /* !CONFIG_OBLIVIUM_STACK */
 	uk_pr_info("Calling main(%d, [", argc);
 	for (i = 0; i < argc; ++i) {
 		uk_pr_info("'%s'", argv[i]);
@@ -418,6 +519,7 @@ void ukplat_entry(int argc, char *argv[])
 	rc = main(argc, argv);
 	uk_pr_info("main returned %d, halting system\n", rc);
 	rc = (rc != 0) ? UKPLAT_CRASH : UKPLAT_HALT;
+#endif /* !CONFIG_OBLIVIUM_STACK */
 
 exit:
 	ukplat_terminate(rc); /* does not return */
