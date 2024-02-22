@@ -144,6 +144,9 @@ struct uk_vm_fault {
 	 */
 	const __sz len;
 
+	/* Virtual address of the page table where the fault happens. */
+	const __vaddr_t pt_vaddr;
+
 	/**
 	 * Base address of the memory region for which the fault should be
 	 * resolved (not the base address of the VMA). For an access in the

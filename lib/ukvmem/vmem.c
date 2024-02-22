@@ -991,7 +991,7 @@ struct mapx_pagefault_ctx {
 };
 
 static int vmem_mapx_pagefault(struct uk_pagetable *pt __unused,
-			       __vaddr_t vaddr, __vaddr_t pt_vaddr __unused,
+			       __vaddr_t vaddr, __vaddr_t pt_vaddr,
 			       unsigned int level, __pte_t *pte, void *user)
 {
 	struct mapx_pagefault_ctx *ctx = (struct mapx_pagefault_ctx *)user;
@@ -1004,6 +1004,7 @@ static int vmem_mapx_pagefault(struct uk_pagetable *pt __unused,
 		.pte   = *pte,
 		.level = level,
 		.regs  = ctx->regs,
+		.pt_vaddr = pt_vaddr,
 	};
 	int rc;
 
@@ -1015,6 +1016,9 @@ static int vmem_mapx_pagefault(struct uk_pagetable *pt __unused,
 		if (rc == -ENOMEM)
 			return UKPLAT_PAGE_MAPX_ETOOBIG;
 
+		if (rc == UKPLAT_PAGE_MAPX_ESKIP)
+			*pte = PT_Lx_PTE_SET_PADDR(fault.pte, fault.level,
+						   fault.paddr);
 		return rc;
 	}
 
