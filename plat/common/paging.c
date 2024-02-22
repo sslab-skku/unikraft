@@ -59,6 +59,10 @@
 #error "Architecture not supported by paging API"
 #endif
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 /* Forward declarations */
 static inline int pg_pt_alloc(struct uk_pagetable *pt, __vaddr_t *pt_vaddr,
 			      __paddr_t *pt_paddr, unsigned int level);
@@ -1487,6 +1491,44 @@ int ukplat_paging_init(void)
 	__paddr_t paddr;
 	__sz len;
 	int rc;
+
+
+#if CONFIG_OBLIVIUM_ENABLE
+	/* Heuristic: Remove smaller non-contigruous free memory regions */
+	/* 1. find largest region */
+	__sz max_len = 0;
+	__paddr_t max_paddr  = 0;
+	__vaddr_t max_vaddr  = 0;
+	/* First pass: find max len */
+	ukplat_memregion_foreach(&mrd, UKPLAT_MEMRT_FREE, 0, 0)
+	{
+		if (mrd->len > max_len) {
+			max_len = mrd->len;
+			max_paddr = mrd->pbase;
+			max_vaddr = mrd->vbase;
+		}
+	}
+
+	uk_pr_info(
+	    "[Oblivium] Stealing 0x%lx-0x%lx 0x%lx from memory regions\n",
+	    max_vaddr, max_vaddr + max_len, max_paddr);
+	/* Register the largest region to oblivium */
+	oblivium_set_storage(max_vaddr, max_paddr, max_len);
+	// oblivium_set_stash_storage(second_max_paddr, second_max_len);
+
+	/* Second pass: remove it from the mem region list so it is free from
+	 * the frame allocator  */
+	for (int i = ukplat_memregion_find_next(-1, 0x0001, 0, 0, &mrd); i >= 0;
+	     i = ukplat_memregion_find_next(i, 0x0001, 0, 0, &mrd)) {
+		if (mrd->pbase == max_paddr) {
+			uk_pr_info("Removing 0x%lx bytes at 0x%lx\n", mrd->len,
+				   mrd->pbase);
+			ukplat_memregion_list_delete(
+			    &ukplat_bootinfo_get()->mrds, i);
+			break;
+		}
+	}
+#endif
 
 	/* Initialize the frame allocator with the free physical memory
 	 * regions supplied via the boot info. The new page table uses the
