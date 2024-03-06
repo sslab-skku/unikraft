@@ -32,6 +32,8 @@ UK_PLAT_KVM_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/arm/link64.lds.S
 endif
 endif
 
+# LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/isr.ld
+LIBKVMPLAT_LDFLAGS-$(CONFIG_OBLIVIUM) +=	 -Wl,-T,$(UK_PLAT_COMMON_BASE)/isr.ld
 
 ##
 ## Architecture library definitions for x86_64
@@ -131,6 +133,7 @@ endif
 LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/bootinfo.c|common
 LIBKVMPLAT_SRCS-$(CONFIG_LIBFDT) += $(UK_PLAT_COMMON_BASE)/bootinfo_fdt.c|common
 LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/bootinfo.lds.S|common
+
 
 ##
 ## RTC-PL031 library definitions

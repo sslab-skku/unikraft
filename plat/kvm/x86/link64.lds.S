@@ -57,6 +57,14 @@ SECTIONS
 	} :text
 	_etext = .;
 
+	. = ALIGN(__PAGE_SIZE);
+	_isr_text = .;
+	.isr_text :
+	{
+		*(.isr_text)
+	} : text
+	_eisr_text = .;
+
 	/* Read-only data */
 	. = ALIGN(__PAGE_SIZE);
 	_rodata = .;
