@@ -70,6 +70,33 @@ int uk_alloc_register(struct uk_alloc *a)
 	return 0;
 }
 
+int uk_alloc_unregister(struct uk_alloc *a)
+{
+	struct uk_alloc *this = _uk_alloc_head;
+	struct uk_alloc *prev;
+	if (this == a){
+		_uk_alloc_head = this->next;
+		return 0;
+	}
+
+	while (this && this->next && a != this)
+	{
+		prev = this;
+		this = this->next;
+	}
+
+	if (a != this)
+	{
+		/* We are at the end */
+		return 0;
+	}
+	else{
+		prev->next = this->next;
+	}
+
+	return 0;
+}
+
 #ifdef CONFIG_HAVE_MEMTAG
 #define __align_metadata_ifpages __align(MEMTAG_GRANULE)
 #else

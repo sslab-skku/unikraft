@@ -46,6 +46,7 @@ extern "C" {
 #endif
 
 int uk_alloc_register(struct uk_alloc *a);
+int uk_alloc_unregister(struct uk_alloc *a);
 
 /**
  * Compatibility functions that can be used by allocator implementations to
