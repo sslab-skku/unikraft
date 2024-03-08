@@ -92,9 +92,10 @@
 
 #if CONFIG_OBLIVIUM
 #include <oblivium/oblivium.h>
+#include "uk/alloc_impl.h"
 #include <uk/asm/cfi.h>
 
-/* Redeclaration */
+/* Redeclaration, used to switched to the oblivious stack */
 void __noreturn lcpu_arch_jump_to(void *sp, ukplat_lcpu_entry_t entry)
 {
 	__asm__ (
@@ -207,15 +208,13 @@ static struct uk_alloc *heap_init()
 		return NULL;
 
 #if CONFIG_OBLIVIUM_HEAP
+	uk_alloc_unregister(a);
 	/* We now initialize the real heap allocator that is used by rest of the
 	  *program. A new
 	 **/
 	/* TODO: need to somehow process existing mappings */
 	/* Just gonna exclude them from oblivious mappings  for now */
-#define OBLIVIUM_HEAP_BASE 0x600000000
 	// vaddr = heap_base + (alloc_pages << PAGE_SHIFT);
-	vaddr = OBLIVIUM_HEAP_BASE;
-	oblivium_mem_init();
 
 	alloc_pages = oblivium_get_heap_pages();
 

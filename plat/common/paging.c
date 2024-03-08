@@ -1493,7 +1493,7 @@ int ukplat_paging_init(void)
 	int rc;
 
 
-#if CONFIG_OBLIVIUM_ENABLE
+#if CONFIG_OBLIVIUM_ENABLE_PROTECTION
 	/* Heuristic: Remove smaller non-contigruous free memory regions */
 	/* 1. find largest region */
 	__sz max_len = 0;
@@ -1528,6 +1528,7 @@ int ukplat_paging_init(void)
 			break;
 		}
 	}
+
 #endif
 
 	/* Initialize the frame allocator with the free physical memory
@@ -1614,5 +1615,9 @@ int ukplat_paging_init(void)
 	if (unlikely(rc))
 		return rc;
 
+
+#if CONFIG_OBLIVIUM_ENABLE_PROTECTION
+	oblivium_mem_init();
+#endif
 	return 0;
 }
