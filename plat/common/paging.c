@@ -95,15 +95,6 @@ static unsigned int pg_page_largest_level = PAGE_LEVEL;
 static struct uk_pagetable kernel_pt;
 static struct uk_pagetable *pg_active_pt;
 
-#ifdef CONFIG_OBLIVIUM
-static __pte_t last_pte;
-
-__pte_t ukplat_get_last_pte(void)
-{
-	return last_pte;
-}
-#endif
-
 struct uk_pagetable *ukplat_pt_get_active(void)
 {
 	return pg_active_pt;
@@ -732,12 +723,6 @@ TOO_BIG:
 		if (!(flags & PAGE_FLAG_KEEP_PTES))
 			pte = template;
 		else {
-#ifdef CONFIG_OBLIVIUM
-			/* HACK: backing up the last page table entry to access
-			 * it in the page fault handler, since PTE address field
-			 * is cleared after */
-			last_pte = pte;
-#endif
 			template_level = lvl;
 		}
 
@@ -1494,41 +1479,8 @@ int ukplat_paging_init(void)
 
 
 #if CONFIG_OBLIVIUM_ENABLE_PROTECTION
-	/* Heuristic: Remove smaller non-contigruous free memory regions */
-	/* 1. find largest region */
-	__sz max_len = 0;
-	__paddr_t max_paddr  = 0;
-	__vaddr_t max_vaddr  = 0;
-	/* First pass: find max len */
-	ukplat_memregion_foreach(&mrd, UKPLAT_MEMRT_FREE, 0, 0)
-	{
-		if (mrd->len > max_len) {
-			max_len = mrd->len;
-			max_paddr = mrd->pbase;
-			max_vaddr = mrd->vbase;
-		}
-	}
-
-	uk_pr_info(
-	    "[Oblivium] Stealing 0x%lx-0x%lx 0x%lx from memory regions\n",
-	    max_vaddr, max_vaddr + max_len, max_paddr);
-	/* Register the largest region to oblivium */
-	oblivium_set_storage(max_vaddr, max_paddr, max_len);
-	// oblivium_set_stash_storage(second_max_paddr, second_max_len);
-
-	/* Second pass: remove it from the mem region list so it is free from
-	 * the frame allocator  */
-	for (int i = ukplat_memregion_find_next(-1, 0x0001, 0, 0, &mrd); i >= 0;
-	     i = ukplat_memregion_find_next(i, 0x0001, 0, 0, &mrd)) {
-		if (mrd->pbase == max_paddr) {
-			uk_pr_info("Removing 0x%lx bytes at 0x%lx\n", mrd->len,
-				   mrd->pbase);
-			ukplat_memregion_list_delete(
-			    &ukplat_bootinfo_get()->mrds, i);
-			break;
-		}
-	}
-
+	/* Process the list of memregions going to be used by unikraft */
+	oblivium_process_memregion();
 #endif
 
 	/* Initialize the frame allocator with the free physical memory
