@@ -93,36 +93,6 @@
 #if CONFIG_OBLIVIUM
 #include <oblivium/oblivium.h>
 #include "uk/alloc_impl.h"
-#include <uk/asm/cfi.h>
-
-/* Redeclaration, used to switched to the oblivious stack */
-void __noreturn lcpu_arch_jump_to(void *sp, ukplat_lcpu_entry_t entry)
-{
-	__asm__ (
-		"movq	%0, %%rsp\n"
-
-		/* According to System V AMD64 the stack pointer must be
-		 * aligned to 16-bytes. In other words, the value (RSP+8) must
-		 * be a multiple of 16 when control is transferred to the
-		 * function entry point (i.e., the compiler expects a
-		 * misalignment due to the return address having been pushed
-		 * onto the stack).
-		 */
-		"andq	$~0xf, %%rsp\n"
-		"subq	$0x8, %%rsp\n"
-
-#if !__OMIT_FRAMEPOINTER__
-		"xorq	%%rbp, %%rbp\n"
-#endif /* __OMIT_FRAMEPOINTER__ */
-
-		"jmp	*%1\n"
-		:
-		: "r"(sp), "r"(entry)
-		: /* clobbers not needed */);
-
-	/* just make the compiler happy about returning function */
-	__builtin_unreachable();
-}
 #endif
 
 #if CONFIG_LIBUKINTCTLR
@@ -278,29 +248,8 @@ static struct uk_alloc *heap_init()
 #if CONFIG_OBLIVIUM
 /* We define these as global for easier stack switching, as we will need to
  * jump to another stack */
-static char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
+char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
 int argc = 0;
-
-static void __noreturn oblivium_entry(void)
-{
-	ukarch_cfi_unwind_end();
-
-	int rc, i;
-	uk_pr_info("Calling main(%d, [", argc);
-	for (i = 0; i < argc; ++i) {
-		uk_pr_info("'%s'", argv[i]);
-		if ((i + 1) < argc)
-			uk_pr_info(", ");
-	}
-	uk_pr_info("])\n");
-
-	rc = main(argc, argv);
-	uk_pr_info("main returned %d, halting system\n", rc);
-	rc = (rc != 0) ? UKPLAT_CRASH : UKPLAT_HALT;
-
-	ukplat_terminate(rc); /* does not return */
-}
-
 #endif
 
 /* defined in <uk/plat.h> */
@@ -394,11 +343,6 @@ void ukplat_entry(int argc, char *argv[])
 		if (unlikely(rc != 0))
 			UK_CRASH("Could not set the platform memory allocator\n");
 	}
-
-#if CONFIG_OBLIVIUM_STACK
-	void* oblivium_stack = oblivium_setup_stack();
-
-#endif
 
 	/* Allocate a TLS for this execution context */
 	tls = uk_memalign(a,
@@ -502,11 +446,9 @@ void ukplat_entry(int argc, char *argv[])
 	}
 #endif /* CONFIG_LIBPOSIX_ENVIRON */
 
-#if CONFIG_OBLIVIUM_STACK
-	uk_pr_info("Switch from boot stack to oblivium stack @%p\n",
-		   oblivium_stack);
-	lcpu_arch_jump_to(oblivium_stack, oblivium_entry);
-#else /* !CONFIG_OBLIVIUM_STACK */
+#if (CONFIG_OBLIVIUM_STACK || CONFIG_OBLIVIUM_CODE)
+	oblivium_entry();
+#else /* !(CONFIG_OBLIVIUM_STACK || CONFIG_OBLIVIUM_CODE) */
 	uk_pr_info("Calling main(%d, [", argc);
 	for (i = 0; i < argc; ++i) {
 		uk_pr_info("'%s'", argv[i]);
