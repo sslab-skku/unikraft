@@ -6,7 +6,7 @@ endif
 $(eval $(call addlib,libcontext))
 
 # Hardcoding linkerscript
-LIBCONTEXT_LDFLAGS-$(CONFIG_OBLIVIUM) += -Wl,-T,$(LIBCONTEXT_BASE)/isr.ld
+LIBCONTEXT_LDFLAGS-$(CONFIG_OBLIVIUM) += -Wl,-T,$(CONFIG_UK_BASE)/isr.ld
 
 LIBCONTEXT_SRCS-y += $(LIBCONTEXT_BASE)/ctx.c|isr
 LIBCONTEXT_SRCS-y += $(LIBCONTEXT_BASE)/ectx.c|isr
