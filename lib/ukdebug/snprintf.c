@@ -59,6 +59,7 @@
 #include <string.h>
 #include "snprintf.h"
 
+#include <uk/isr/string.h>
 #include <uk/essentials.h>
 
 /* 64 bits + 0-Byte at end */
@@ -259,7 +260,7 @@ reswitch:
 			if (p == NULL)
 				p = "(null)";
 			if (!dot)
-				n = strlen(p);
+				n = strlen_isr(p);
 			else
 				for (n = 0; n < dwidth && p[n]; n++)
 					continue;

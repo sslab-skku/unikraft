@@ -34,6 +34,7 @@
  */
 
 #include "snprintf.h"
+#include <uk/isr/string.h>
 #include <stdint.h>
 #include <limits.h>
 #include <string.h>
@@ -230,7 +231,7 @@ static void _vprint(struct _vprint_console *cons,
 #if CONFIG_LIBUKDEBUG_PRINT_TIME
 			_print_timestamp(cons);
 #endif
-			cons->cout(DECONST(char *, msghdr), strlen(msghdr));
+			cons->cout(DECONST(char *, msghdr), strlen_isr(msghdr));
 #if CONFIG_LIBUKDEBUG_PRINT_THREAD
 			_print_thread(cons);
 #endif
@@ -239,9 +240,9 @@ static void _vprint(struct _vprint_console *cons,
 #endif
 			if (libname) {
 				cons->cout(LVLC_RESET LVLC_LIBNAME "[",
-					   strlen(LVLC_RESET LVLC_LIBNAME) + 1);
+					   strlen_isr(LVLC_RESET LVLC_LIBNAME) + 1);
 				cons->cout(DECONST(char *, libname),
-					   strlen(libname));
+					   strlen_isr(libname));
 				cons->cout("] ", 2);
 			}
 #if CONFIG_LIBUKDEBUG_PRINT_SRCNAME
@@ -249,9 +250,9 @@ static void _vprint(struct _vprint_console *cons,
 				char lnobuf[6];
 
 				cons->cout(LVLC_RESET LVLC_SRCNAME "<",
-					   strlen(LVLC_RESET LVLC_SRCNAME) + 1);
+					   strlen_isr(LVLC_RESET LVLC_SRCNAME) + 1);
 				cons->cout(DECONST(char *, srcname),
-					   strlen(srcname));
+					   strlen_isr(srcname));
 				cons->cout(" @ ", 3);
 				cons->cout(lnobuf,
 					   __uk_snprintf(lnobuf, sizeof(lnobuf),
@@ -262,7 +263,7 @@ static void _vprint(struct _vprint_console *cons,
 			cons->newline = 0;
 		}
 
-		nlptr = memchr(lptr, '\n', len);
+		nlptr = memchr_isr(lptr, '\n', len);
 		if (nlptr) {
 			llen = (int)((uintptr_t)nlptr - (uintptr_t)lptr) + 1;
 			cons->newline = 1;
@@ -274,17 +275,17 @@ static void _vprint(struct _vprint_console *cons,
 		switch (lvl) {
 		case KLVL_CRIT:
 			cons->cout(LVLC_RESET LVLC_CRIT_MSG,
-				   strlen(LVLC_RESET LVLC_CRIT_MSG));
+				   strlen_isr(LVLC_RESET LVLC_CRIT_MSG));
 			break;
 		case KLVL_ERR:
 			cons->cout(LVLC_RESET LVLC_ERROR_MSG,
-				   strlen(LVLC_RESET LVLC_ERROR_MSG));
+				   strlen_isr(LVLC_RESET LVLC_ERROR_MSG));
 			break;
 		default:
-			cons->cout(LVLC_RESET, strlen(LVLC_RESET));
+			cons->cout(LVLC_RESET, strlen_isr(LVLC_RESET));
 		}
 		cons->cout((char *)lptr, llen);
-		cons->cout(LVLC_RESET, strlen(LVLC_RESET));
+		cons->cout(LVLC_RESET, strlen_isr(LVLC_RESET));
 
 		len -= llen;
 		lptr = nlptr + 1;
