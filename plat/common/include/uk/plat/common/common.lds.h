@@ -173,6 +173,15 @@
 	} UK_SEGMENT_DATA						\
 	_edata = .;							\
 									\
+	. = ALIGN(__PAGE_SIZE);						\
+	_isr_data = .;							\
+	.isr_data :							\
+	{								\
+		*(.isr_data)						\
+		*(.isr_data.*)						\
+	} UK_SEGMENT_DATA						\
+	_eisr_data = .;							\
+									\
 	/*								\
 	 * NOTE: linker will insert any extra sections here,		\
 	 * just before .bss						\
@@ -185,9 +194,20 @@
 	{								\
 		*(.bss)							\
 		*(.bss.*)						\
+		. = ALIGN(__PAGE_SIZE);					\
+	}								\
+	__bss_end = .;							\
+									\
+	. = ALIGN(__PAGE_SIZE);						\
+	__isr_bss_start = .;						\
+	.isr_bss :							\
+	{								\
+		*(.isr_bss)						\
+		*(.isr_bss.*)						\
 		*(COMMON)						\
 		. = ALIGN(__PAGE_SIZE);					\
-	}
+	}								\
+	__isr_bss_end = .;
 
 #define DISCARDS							\
 	/DISCARD/ :							\

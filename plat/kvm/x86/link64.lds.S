@@ -75,6 +75,15 @@ SECTIONS
 	} :rodata
 	_erodata = .;
 
+	. = ALIGN(__PAGE_SIZE);
+	_isr_rodata = .;
+	.isr_rodata :
+	{
+		*(.isr_rodata)
+		*(.isr_rodata.*)
+	} :rodata
+	_eisr_rodata = .;
+
 	EXCEPTION_SECTIONS
 
 	CTORTAB_SECTION
