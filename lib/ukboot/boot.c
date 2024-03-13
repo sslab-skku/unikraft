@@ -91,8 +91,9 @@
 #include "banner.h"
 
 #if CONFIG_OBLIVIUM
-#include <oblivium/oblivium.h>
-#include "uk/alloc_impl.h"
+#include <oblivium/vma_manager.h>
+#include <oblivium/entry.h>
+#include "uk/alloc_impl.h" /* For uk_alloc_unregister */
 #endif
 
 #if CONFIG_LIBUKINTCTLR
