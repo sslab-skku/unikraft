@@ -447,7 +447,7 @@ void ukplat_entry(int argc, char *argv[])
 	}
 #endif /* CONFIG_LIBPOSIX_ENVIRON */
 
-#if (CONFIG_OBLIVIUM_STACK || CONFIG_OBLIVIUM_CODE)
+#if (CONFIG_OBLIVIUM)
 	oblivium_entry();
 #else /* !(CONFIG_OBLIVIUM_STACK || CONFIG_OBLIVIUM_CODE) */
 	uk_pr_info("Calling main(%d, [", argc);
