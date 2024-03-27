@@ -1478,7 +1478,7 @@ int ukplat_paging_init(void)
 	int rc;
 
 
-#if CONFIG_OBLIVIUM_ENABLE_PROTECTION
+#if CONFIG_OBLIVIUM
 	/* Process the list of memregions going to be used by unikraft */
 	oblivium_process_memregion();
 #endif
