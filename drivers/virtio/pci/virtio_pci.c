@@ -43,6 +43,10 @@
 #include <virtio/virtqueue.h>
 #include <virtio/virtio_pci.h>
 
+#if CONFIG_OBLIVIUM
+#include "oblivium/oblivium.h"
+#endif
+
 #define VENDOR_QUMRANET_VIRTIO           (0x1AF4)
 #define VIRTIO_PCI_MODERN_DEVICEID_START (0x1040)
 
@@ -437,11 +441,15 @@ free_pci_dev:
 
 static int virtio_pci_drv_init(struct uk_alloc *drv_allocator)
 {
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#else
 	/* driver initialization */
 	if (!drv_allocator)
 		return -EINVAL;
 
 	a = drv_allocator;
+#endif
 	return 0;
 }
 

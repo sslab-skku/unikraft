@@ -181,6 +181,10 @@ static int virtio_bus_probe(void)
 	return 0;
 }
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 /**
  * Initialize the virtio bus driver(s).
  * @param mem_alloc
@@ -195,7 +199,11 @@ static int virtio_bus_init(struct uk_alloc *mem_alloc)
 	struct virtio_driver *drv = NULL, *ndrv = NULL;
 	int ret = 0, dev_count = 0;
 
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#else
 	a = mem_alloc;
+#endif
 	UK_TAILQ_FOREACH_SAFE(drv, &virtio_drvs, next, ndrv) {
 		if (drv->init) {
 			ret = drv->init(a);

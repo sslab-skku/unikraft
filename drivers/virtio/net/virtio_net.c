@@ -42,6 +42,10 @@
 #include <virtio/virtqueue.h>
 #include <virtio/virtio_net.h>
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 #define DRIVER_NAME	"virtio-net"
 
 /* VIRTIO_PKT_BUFFER_LEN = VIRTIO_NET_HDR + ETH_HDR + ETH_PKT_PAYLOAD_LEN */
@@ -1291,11 +1295,15 @@ err_out:
 
 static int virtio_net_drv_init(struct uk_alloc *drv_allocator)
 {
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#else
 	/* driver initialization */
 	if (!drv_allocator)
 		return -EINVAL;
 
 	a = drv_allocator;
+#endif
 	return 0;
 }
 

@@ -53,6 +53,10 @@
 #include <libfdt.h>
 #endif /* CONFIG_LIBVIRTIO_MMIO_FDT */
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 /*
  * The alignment to use between consumer and producer parts of vring.
  * Currently hardcoded to the page size.
@@ -555,12 +559,15 @@ free_vmdev:
 
 static int virtio_mmio_drv_init(struct uk_alloc *drv_allocator)
 {
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#else
 	/* driver initialization */
 	if (!drv_allocator)
 		return -EINVAL;
 
 	a = drv_allocator;
-
+#endif
 	return 0;
 }
 
