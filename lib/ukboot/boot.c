@@ -245,21 +245,11 @@ static struct uk_alloc *heap_init()
 	return a;
 }
 
-
-#if CONFIG_OBLIVIUM
-/* We define these as global for easier stack switching, as we will need to
- * jump to another stack */
-char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
-int argc = 0;
-#endif
-
 /* defined in <uk/plat.h> */
 void ukplat_entry_argp(char *arg0, char *argb, __sz argb_len)
 {
-#if !CONFIG_OBLIVIUM
 	static char *argv[CONFIG_LIBUKBOOT_MAXNBARGS];
 	int argc = 0;
-#endif
 
 	if (arg0) {
 		argv[0] = arg0;
@@ -448,7 +438,7 @@ void ukplat_entry(int argc, char *argv[])
 #endif /* CONFIG_LIBPOSIX_ENVIRON */
 
 #if (CONFIG_OBLIVIUM)
-	oblivium_entry();
+	oblivium_entry(argc, argv);
 #else /* !(CONFIG_OBLIVIUM_STACK || CONFIG_OBLIVIUM_CODE) */
 	uk_pr_info("Calling main(%d, [", argc);
 	for (i = 0; i < argc; ++i) {

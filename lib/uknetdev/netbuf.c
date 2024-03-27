@@ -33,6 +33,10 @@
 #include <uk/essentials.h>
 #include <uk/print.h>
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 /* Used to align netbuf's priv and data areas to `long long` data type */
 #define NETBUF_ADDR_ALIGNMENT (sizeof(long long))
 #define NETBUF_ADDR_ALIGN_UP(x)   ALIGN_UP((__uptr) (x), \
@@ -66,6 +70,11 @@ struct uk_netbuf *uk_netbuf_alloc_indir(struct uk_alloc *a,
 					size_t privlen, uk_netbuf_dtor_t dtor)
 {
 	struct uk_netbuf *m;
+
+
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#endif
 
 	if (privlen)
 		m = uk_malloc(a, NETBUF_ADDR_ALIGN_UP(sizeof(*m)) + privlen);
@@ -103,6 +112,11 @@ struct uk_netbuf *uk_netbuf_alloc_buf(struct uk_alloc *a, size_t buflen,
 
 	UK_ASSERT(buflen > 0);
 	UK_ASSERT(headroom <= buflen);
+
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#endif
+
 
 	alloc_len = NETBUF_ADDR_ALIGN_UP(buflen)
 		    + NETBUF_ADDR_ALIGN_UP(sizeof(*m) + privlen);
