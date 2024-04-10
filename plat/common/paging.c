@@ -1571,9 +1571,5 @@ int ukplat_paging_init(void)
 	if (unlikely(rc))
 		return rc;
 
-
-#if CONFIG_OBLIVIUM_ENABLE_PROTECTION
-	oblivium_mem_init();
-#endif
 	return 0;
 }
