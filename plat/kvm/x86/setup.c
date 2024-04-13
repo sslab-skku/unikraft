@@ -26,6 +26,7 @@
 #include <uk/plat/common/bootinfo.h>
 
 #ifdef CONFIG_LIBUKSEV
+#include <uk/intctlr/apic.h> // For apic_enable
 #include <uk/sev.h>
 #endif
 
@@ -95,6 +96,7 @@ void _ukplat_entry(struct lcpu *lcpu, struct ukplat_bootinfo *bi)
 
 
 #ifndef CONFIG_LIBUKSEV
+	/* SEV-ES: I/O operations are delayed until after GHCB is setup */
 	/* Initialize IRQ controller */
 	rc = uk_intctlr_probe();
 	if (unlikely(rc))
@@ -127,7 +129,8 @@ void _ukplat_entry(struct lcpu *lcpu, struct ukplat_bootinfo *bi)
 	if (unlikely(rc))
 		UK_CRASH("GHCB setup failed: %d\n", rc);
 
-
+	/* Now the #VC handler is properly setup, we call the delayed operations
+	 */
 
 	/* Setting up APIC requires MSR access */
 	/* Initialize IRQ controller */
@@ -141,8 +144,6 @@ void _ukplat_entry(struct lcpu *lcpu, struct ukplat_bootinfo *bi)
 		UK_CRASH("Cannot enable APIC: %d\n", rc);
 #endif /* CONFIG_HAVE_SMP */
 
-	/* Now the #VC handler is properly setup, we call the delayed operations
-	 */
 	_libkvmplat_init_console();
 
 	/* Initialize IRQ controller */

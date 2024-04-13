@@ -67,6 +67,7 @@ __lcpuid lcpu_arch_id(void)
 int lcpu_arch_init(struct lcpu *this_lcpu)
 {
 #if !CONFIG_LIBUKSEV
+	/* SEV-ES: I/O operations are delayed until after GHCB is setup */
 #ifdef CONFIG_HAVE_SMP
 	int rc;
 
