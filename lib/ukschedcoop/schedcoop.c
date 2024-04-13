@@ -37,6 +37,10 @@
 #include <uk/schedcoop.h>
 #include <uk/essentials.h>
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/oblivium.h>
+#endif
+
 struct schedcoop {
 	struct uk_sched sched;
 	struct uk_thread_list run_queue;
@@ -291,6 +295,9 @@ struct uk_sched *uk_schedcoop_create(struct uk_alloc *a)
 	int rc;
 
 	uk_pr_info("Initializing cooperative scheduler\n");
+#if CONFIG_OBLIVIUM
+	a = oblivium_get_unsafe_allocator();
+#endif
 	c = uk_zalloc(a, sizeof(struct schedcoop));
 	if (!c)
 		goto err_out;
@@ -302,7 +309,11 @@ struct uk_sched *uk_schedcoop_create(struct uk_alloc *a)
 	rc = uk_thread_init_fn1(&c->idle,
 				idle_thread_fn, (void *) c,
 				a, STACK_SIZE,
+#if CONFIG_OBLIVIUM // TLS uses the safe allocator I guess
+				oblivium_get_allocator(), false,
+#else
 				a, false,
+#endif
 				NULL,
 				"idle",
 				NULL,
@@ -321,6 +332,11 @@ struct uk_sched *uk_schedcoop_create(struct uk_alloc *a)
 			schedcoop_thread_woken,
 			schedcoop_idle_thread,
 			a);
+
+#if CONFIG_OBLIVIUM
+	c->sched.a = oblivium_get_allocator();
+	c->sched.a_uktls = oblivium_get_allocator();
+#endif
 
 	/* Add idle thread to the scheduler's thread list */
 	UK_TAILQ_INSERT_TAIL(&c->sched.thread_list, &c->idle, thread_list);
