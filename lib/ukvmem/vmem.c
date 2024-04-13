@@ -9,6 +9,7 @@
 
 #include "vmem.h"
 
+#include <uk/spinlock.h>
 #include <uk/essentials.h>
 #include <uk/arch/limits.h>
 #include <uk/arch/paging.h>
@@ -66,6 +67,8 @@ int uk_vas_init(struct uk_vas *vas, struct uk_pagetable *pt __maybe_unused,
 #endif /* CONFIG_HAVE_PAGING */
 
 	vas->flags = 0;
+
+	uk_spin_init(&vas->pf_lock);
 
 	UK_INIT_LIST_HEAD(&vas->vma_list);
 
@@ -1029,6 +1032,8 @@ static int vmem_mapx_pagefault(struct uk_pagetable *pt __unused,
 	return 0;
 }
 
+
+
 int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 {
 	const unsigned int demand_lvl =
@@ -1053,6 +1058,9 @@ int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 	vas = uk_vas_get_active();
 	if (unlikely(!vas || vas->flags & UK_VAS_FLAG_NO_PAGING))
 		return -EFAULT;
+
+	uk_spin_lock(&vas->pf_lock);
+
 
 	/* If the page fault was caused by an access to a region not covered by
 	 * a virtual memory area, fail early.
@@ -1108,7 +1116,10 @@ int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 	UK_ASSERT(vbase + PAGE_Lx_SIZE(lvl) >= ctx.vma->start &&
 		  vbase + PAGE_Lx_SIZE(lvl) <= ctx.vma->end);
 
-	return ukplat_page_mapx(pt, vbase, 0, 1, ctx.vma->attr,
+	rc = ukplat_page_mapx(pt, vbase, 0, 1, ctx.vma->attr,
 				PAGE_FLAG_SIZE(lvl) | flags, &mapx);
+
+	uk_spin_unlock(&vas->pf_lock);
+	return rc;
 }
 #endif /* CONFIG_HAVE_PAGING */

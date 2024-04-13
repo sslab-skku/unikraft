@@ -39,6 +39,7 @@
 #include <uk/arch/paging.h>
 #include <uk/list.h>
 #include <uk/alloc.h>
+#include <uk/spinlock.h>
 #ifdef CONFIG_HAVE_PAGING
 #include <uk/plat/paging.h>
 #endif /* CONFIG_HAVE_PAGING */
@@ -54,6 +55,8 @@ struct uk_vma_ops;
 
 /** Virtual address space (VAS) */
 struct uk_vas {
+
+	struct uk_spinlock pf_lock;
 	/** Allocator to use for VMAs */
 	struct uk_alloc *a;
 
