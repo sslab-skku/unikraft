@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "x86/cpu.h"
 #include <uk/plat/common/trace.h>
 #include <uk/print.h>
 
@@ -51,6 +52,8 @@ void dump_regs(struct __regs *regs)
 			regs->r10, regs->r11, regs->r12);
 	uk_pr_crit("R13: %016lx R14: %016lx R15: %016lx\n",
 			regs->r13, regs->r14, regs->r15);
+	uk_pr_crit("CR2: %016lx\n",read_cr2());
+
 }
 
 /* TODO to be removed; we should use uk_hexdump() instead */
