@@ -583,13 +583,19 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 				if (PAGE_Lx_IS(pte, lvl)) {
 					if (!mapx)
 						return -EEXIST;
-
+#if CONFIG_OBLIVIUM
+					oblivium_page_split(
+					    pt, pt_vaddr,
+					    PAGE_Lx_ALIGN_DOWN(vaddr, lvl),
+					    level);
+#else
 					rc = pg_page_split(pt, pt_vaddr, vaddr,
 							   lvl);
 					if (unlikely(rc))
 						return rc;
+#endif
 
-					continue;
+					    continue;
 				}
 
 				pt_vaddr = pgarch_pt_pte_to_vaddr(pt, pte, lvl);
@@ -602,7 +608,6 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 					rc = mapx->map(pt, vaddr,
 						       pt_vaddr_cache[lvl],
 						       lvl, &pte, mapx->ctx);
-					uk_pr_debug("Mapped pte: 0x%lx\n", pte);
 
 					if (rc) {
 						if (rc
