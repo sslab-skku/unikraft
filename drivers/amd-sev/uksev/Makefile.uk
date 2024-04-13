@@ -18,3 +18,5 @@ ifneq ($(filter y,$(CONFIG_LIBUKSEV_TEST) $(CONFIG_LIBUKTEST_ALL)),)
 LIBUKSEV_SRCS-y += $(LIBUKSEV_BASE)/tests/test_sev.c
 LIBUKSEV_SRCS-y += $(LIBUKSEV_BASE)/tests/test_decoder.c
 endif
+
+LIBUKSEV_LDFLAGS-$(CONFIG_OBLIVIUM) +=	 -Wl,-T,$(CONFIG_UK_BASE)/isr.ld

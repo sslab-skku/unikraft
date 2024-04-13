@@ -33,6 +33,8 @@
 #ifndef __VIRTIO_CONFIG_H__
 #define __VIRTIO_CONFIG_H__
 
+#include "uk/arch/lcpu.h"
+#include "uk/sev.h"
 #include <uk/arch/types.h>
 #include <uk/config.h>
 #include <uk/plat/common/cpu.h>
@@ -117,6 +119,9 @@ static inline
 void virtio_mmio_cwrite_bytes(const void *addr, const __u8 offset,
 			      const void *buf, int len, int type_len)
 {
+#ifdef CONFIG_LIBUKSEV
+	uk_sev_cwrite_bytes(addr, offset, buf, len, type_len);
+#else
 	int i = 0;
 	__u64 io_addr;
 	int count;
@@ -126,7 +131,8 @@ void virtio_mmio_cwrite_bytes(const void *addr, const __u8 offset,
 		io_addr = ((unsigned long)addr) + offset + (i * type_len);
 		/* HELP: Somehow when you remove this print, uksev does not
 		 * emulate the write / interrupt is not triggered. */
-		uk_pr_info("\n");
+		barrier();
+		/* uk_pr_info("\n"); */
 		switch (type_len) {
 		case 1:
 			writeb((__u8 *)io_addr, ((__u8 *)buf)[i * type_len]);
@@ -142,6 +148,7 @@ void virtio_mmio_cwrite_bytes(const void *addr, const __u8 offset,
 			UK_CRASH("Unsupported virtio write operation\n");
 		}
 	}
+#endif
 }
 
 static inline

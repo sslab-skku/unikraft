@@ -32,6 +32,7 @@
 int uk_sev_mem_encrypt_init(void);
 int uk_sev_early_vc_handler_init(void);
 
+struct ghcb *uk_sev_get_ghcb_page();
 int uk_sev_setup_ghcb(void);
 void uk_sev_terminate(int set, int reason);
 int uk_sev_ghcb_initialized(void);
@@ -46,6 +47,9 @@ int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart, unsigned long num
  * #VC triggered by CPUID calls. */
 int do_vmm_comm_exception_no_ghcb(struct __regs *regs,
 				   unsigned long error_code);
+
+void uk_sev_cwrite_bytes(const void *addr, const __u8 offset,
+			      const void *buf, int len, int type_len);
 void do_vmm_comm_exception(struct __regs *regs, unsigned long error_code);
 void uk_sev_terminate(int set, int reason);
 

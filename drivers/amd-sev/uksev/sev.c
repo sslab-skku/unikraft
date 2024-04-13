@@ -4,7 +4,9 @@
  * You may not use this file except in compliance with the License.
  */
 
-#define UK_DEBUG
+// #define UK_DEBUG
+//
+#include "uk/spinlock.h"
 
 #include "uk/asm/sev.h"
 #include "kvm-x86/serial_console.h"
@@ -35,11 +37,13 @@
 #include "decoder.h"
 
 /* Boot GDT and IDT to setup the early VC handler */
-static __align(8) struct seg_desc32 boot_cpu_gdt64[GDT_NUM_ENTRIES];
+static __attribute__((aligned(8))) struct seg_desc32 boot_cpu_gdt64[GDT_NUM_ENTRIES];
 static struct seg_gate_desc64 sev_boot_idt[IDT_NUM_ENTRIES] __align(8);
 static struct desc_table_ptr64 boot_idtptr;
 static struct ghcb ghcb_page __align(__PAGE_SIZE);
-
+static __paddr_t ghcb_paddr; // Cache of GHCB
+struct uk_spinlock ghcb_lock;
+struct uk_spinlock ghcb_msr_lock;
 
 /* Debug printing is only available after GHCB is initialized. */
 int ghcb_initialized = 1;
@@ -55,12 +59,16 @@ static inline __u64 uk_sev_ghcb_rdmsrl()
 
 static inline __u64 uk_sev_ghcb_msr_invoke(__u64 value)
 {
+	uk_spin_lock(&ghcb_msr_lock);
 	uk_sev_ghcb_wrmsrl(value);
 	vmgexit();
-	return uk_sev_ghcb_rdmsrl();
+	__u64 ret = uk_sev_ghcb_rdmsrl();
+	uk_spin_unlock(&ghcb_msr_lock);
+	return ret;
 }
 
-int uk_sev_ghcb_initialized(void) {
+int uk_sev_ghcb_initialized(void)
+{
 #ifdef CONFIG_X86_AMD64_FEAT_SEV_ES
 	return ghcb_initialized;
 #else
@@ -73,6 +81,11 @@ void uk_sev_terminate(int set, int reason)
 	vmgexit();
 }
 
+struct ghcb *uk_sev_get_ghcb_page()
+{
+	return &ghcb_page;
+}
+
 int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2)
 {
@@ -83,8 +96,11 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 
 	/* TODO: Negotiate ghcb protocol version */
 	/* ghcb->protocol_version = 1; */
-	uk_sev_ghcb_wrmsrl(ukplat_virt_to_phys(ghcb));
-	vmgexit();
+	// uk_sev_ghcb_wrmsrl(ukplat_virt_to_phys(ghcb));
+	// vmgexit();
+	// __u64 ret = uk_sev_ghcb_msr_invoke(ukplat_virt_to_phys(ghcb));
+	// HACK: We are using a single ghcb so no problem here.
+	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
 	/* TODO: Verify VMM return */
 	return 0;
@@ -128,7 +144,8 @@ static inline int uk_sev_ghcb_cpuid(__u32 fn, __unused __u32 sub_fn, __u32 *eax,
  * Emulation of serial print, so that #VC is not triggered.
  */
 // #define SERIAL_PRINTF 1
-static void uk_sev_serial_printf(struct ghcb *ghcb, const char* fmt, ...){
+static void uk_sev_serial_printf(struct ghcb *ghcb, const char *fmt, ...)
+{
 #if SERIAL_PRINTF
 	if (!ghcb_initialized)
 		return;
@@ -178,11 +195,9 @@ static void uk_sev_serial_printf(struct ghcb *ghcb, const char* fmt, ...){
 	if (orig_rdx_valid)
 		GHCB_SAVE_AREA_SET_FIELD(ghcb, rdx, orig_rdx);
 #endif
-
 }
 
-int do_vmm_comm_exception_no_ghcb(struct __regs *regs,
-				   unsigned long error_code)
+int do_vmm_comm_exception_no_ghcb(struct __regs *regs, unsigned long error_code)
 {
 	__u32 fn = regs->rax;
 	if (error_code == SVM_VMEXIT_CPUID) {
@@ -209,33 +224,34 @@ int do_vmm_comm_exception_no_ghcb(struct __regs *regs,
 	return -ENOTSUP;
 }
 
-int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart, unsigned long num_pages,
-			   int page_state)
+int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart,
+			   unsigned long num_pages, int page_state)
 {
 
 	vstart = PAGE_ALIGN_DOWN(vstart);
 	pstart = PAGE_ALIGN_DOWN(pstart);
 
-	for (unsigned long i = 0; i < num_pages; i++){
+	for (unsigned long i = 0; i < num_pages; i++) {
 		int rc;
 		__u64 val;
 		__paddr_t paddr = pstart + i * PAGE_SIZE;
 		__paddr_t vaddr = vstart + i * PAGE_SIZE;
 
 		if (page_state == SEV_GHCB_MSR_SNP_PSC_PG_SHARED) {
-			uk_pr_info("Pvalidating vaddr 0x%lx paddr 0x%lx shared\n", vaddr,
-				   paddr);
+			uk_pr_debug(
+			    "Pvalidating vaddr 0x%lx paddr 0x%lx shared\n",
+			    vaddr, paddr);
 
 			/* Un-validate page to make it shared */
 			rc = pvalidate(vaddr, PVALIDATE_PAGE_SIZE_4K, 0);
-			if (unlikely(rc))
-			{
-				uk_pr_warn("pvalidate failed, error code: %d.\n", rc);
+			if (unlikely(rc)) {
+				uk_pr_warn(
+				    "pvalidate failed, error code: %d.\n", rc);
 				return rc;
 			}
 		}
 
-		uk_pr_info("Requesting PSC\n");
+		// uk_pr_info("Requesting PSC\n");
 		val = uk_sev_ghcb_msr_invoke(SEV_GHCB_MSR_SNP_PSC_REQ_VAL(
 		    page_state, paddr >> PAGE_SHIFT));
 
@@ -249,12 +265,14 @@ int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart, unsigned long num
 		}
 
 		if (page_state == SEV_GHCB_MSR_SNP_PSC_PG_PRIVATE) {
-			uk_pr_info("Pvalidating vaddr 0x%lx paddr 0x%lx private\n", vaddr, paddr);
+			uk_pr_debug(
+			    "Pvalidating vaddr 0x%lx paddr 0x%lx private\n",
+			    vaddr, paddr);
 
 			rc = pvalidate(vaddr, PVALIDATE_PAGE_SIZE_4K, 1);
-			if (unlikely(rc))
-			{
-				uk_pr_warn("pvalidate failed, error code: %d.\n", rc);
+			if (unlikely(rc)) {
+				uk_pr_warn(
+				    "pvalidate failed, error code: %d.\n", rc);
 				return rc;
 			}
 		}
@@ -263,23 +281,23 @@ int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart, unsigned long num
 	return 0;
 }
 
-
 int uk_sev_set_memory_private(__vaddr_t addr, unsigned long num_pages)
 {
 	UK_ASSERT(PAGE_ALIGNED(addr));
 	unsigned long prot;
 	int rc;
 
-	uk_pr_info("Setting 0x%lx, %lu pages to private\n", addr, num_pages);
+	uk_pr_debug("Setting 0x%lx, %lu pages to private\n", addr, num_pages);
 	prot = PAGE_ATTR_PROT_RW | PAGE_ATTR_ENCRYPT;
-	rc = ukplat_page_set_attr(ukplat_pt_get_active(), addr, num_pages, prot, 0);
+	rc = ukplat_page_set_attr(ukplat_pt_get_active(), addr, num_pages, prot,
+				  0);
 
 	if (unlikely(rc))
 		return rc;
 
 #ifdef CONFIG_X86_AMD64_FEAT_SEV_SNP
-	rc = uk_sev_set_pages_state(addr, ukplat_virt_to_phys((void*)addr), num_pages,
-	 			    SEV_GHCB_MSR_SNP_PSC_PG_PRIVATE);
+	rc = uk_sev_set_pages_state(addr, ukplat_virt_to_phys((void *)addr),
+				    num_pages, SEV_GHCB_MSR_SNP_PSC_PG_PRIVATE);
 	if (unlikely(rc))
 		return rc;
 #endif
@@ -295,7 +313,7 @@ int uk_sev_set_memory_shared(__vaddr_t addr, unsigned long num_pages)
 	unsigned long prot;
 	int rc;
 
-	uk_pr_info("Setting 0x%lx, %lu pages to shared\n", addr, num_pages);
+	uk_pr_debug("Setting 0x%lx, %lu pages to shared\n", addr, num_pages);
 
 	/* Clearing memory before sharing the page. This also makes sure the PTE
 	 * is present */
@@ -337,7 +355,6 @@ int uk_sev_setup_ghcb(void)
 {
 #ifdef CONFIG_X86_AMD64_FEAT_SEV_ES
 	int rc;
-	__paddr_t ghcb_paddr;
 
 	rc = uk_sev_set_memory_shared((__vaddr_t)&ghcb_page,
 				      sizeof(struct ghcb) / __PAGE_SIZE);
@@ -365,6 +382,7 @@ int uk_sev_setup_ghcb(void)
 		UK_CRASH("Fail initializing instruction decoder\n");
 		return -1;
 	}
+	uk_spin_init(&ghcb_lock);
 #endif /* CONFIG_X86_AMD64_FEAT_SEV_ES */
 
 	return 0;
@@ -589,9 +607,67 @@ static int uk_sev_handle_ioio(struct __regs *regs, struct ghcb *ghcb)
 	return 0;
 }
 
-static int uk_sev_do_mmio(struct ghcb *ghcb,int is_read){
+// static void uk_sev_mmio_write_bytes(void *addr, const __u8 offset, void *buf, int len, int type_len) {
+//
+//
+// 	uk_spin_lock(&ghcb_lock);
+// 	int  sz;
+//
+//
+// 	__paddr_t ghcb_phys, shared_buffer;
+// 	__u64 exitcode, exitinfo1, exitinfo2;
+//
+// 	sz = type_len;
+//
+// 	uk_pr_info("Writing  %d bytes from 0x%lx to 0x%lx\n", type_len, buf,
+// 		   addr);
+// 	exitcode = SVM_VMGEXIT_MMIO_WRITE;
+// 	exitinfo1 = (__u64)ukplat_virt_to_phys((void *)buf) + offset;
+// 	exitinfo2 = sz;
+//
+// 	shared_buffer = ghcb_paddr + __offsetof(struct ghcb, shared_buffer);
+//
+// 	memcpy_isr(ghcb_page.shared_buffer, reg_ref, sz);
+//
+// 	GHCB_SAVE_AREA_SET_FIELD((&ghcb_page), sw_scratch, shared_buffer);
+//
+// 	uk_sev_ghcb_vmm_call(&ghcb_page, exitcode, exitinfo1, exitinfo2);
+// 	uk_spin_unlock(&ghcb_lock);
+// }
+//
 
+void uk_sev_cwrite_bytes(const void *addr, const __u8 offset,
+			      const void *buf, int len, int type_len)
+{
+	// uk_pr_info("Writing %d bytes to to 0x%lx\n",len, addr);
+	uk_spin_lock(&ghcb_lock);
+	int i = 0;
+	__u64 io_addr;
+	int count;
+
+	__u64 exitcode, exitinfo1, exitinfo2;
+	__paddr_t shared_buffer = ghcb_paddr + __offsetof(struct ghcb, shared_buffer);
+	count = len / type_len;
+	for (i = 0; i < count; i++) {
+
+		io_addr = ((unsigned long)addr) + offset + (i * type_len);
+
+		exitcode = SVM_VMGEXIT_MMIO_WRITE;
+		exitinfo1 =
+		    (__u64)ukplat_virt_to_phys((void *)io_addr);
+		exitinfo2 = type_len;
+
+		memcpy_isr((&ghcb_page)->shared_buffer, &buf[i * type_len],
+			   type_len);
+
+		GHCB_SAVE_AREA_SET_FIELD((&ghcb_page), sw_scratch, shared_buffer);
+		uk_sev_ghcb_vmm_call(&ghcb_page, exitcode, exitinfo1, exitinfo2);
+	}
+
+	uk_spin_unlock(&ghcb_lock);
 }
+
+static int uk_sev_do_mmio(struct ghcb *ghcb, int is_read) {}
 static int uk_sev_handle_mmio_inst(struct __regs *regs, struct ghcb *ghcb,
 				   struct uk_sev_decoded_inst *instruction)
 {
@@ -605,7 +681,6 @@ static int uk_sev_handle_mmio_inst(struct __regs *regs, struct ghcb *ghcb,
 	uk_sev_pr_instruction(instruction, buffer, 512);
 	uk_sev_serial_printf(ghcb, "Handling MMIO %s\n", buffer);
 	uk_sev_serial_printf(ghcb, "opcode: 0x%x\n", instruction->opcode);
-
 
 	/* uk_sev_pr_instruction(instruction); */
 	/* uk_pr_info("Opcode: 0x%" __PRIx64 "\n", instruction->opcode); */
@@ -626,27 +701,26 @@ static int uk_sev_handle_mmio_inst(struct __regs *regs, struct ghcb *ghcb,
 		rc = uk_sev_inst_get_displacement(instruction, &disp);
 		sz = instruction->operand_width / 8;
 
-
 		exitcode = SVM_VMGEXIT_MMIO_WRITE;
 		exitinfo1 = (__u64)ukplat_virt_to_phys((void *)*mem_ref) + disp;
 		exitinfo2 = sz;
 
 		/* shared_buffer = ukplat_virt_to_phys(ghcb->shared_buffer); */
-		ghcb_phys = ukplat_virt_to_phys(ghcb);
+		// ghcb_phys = ukplat_virt_to_phys(ghcb);
 		shared_buffer =
-		    ghcb_phys + __offsetof(struct ghcb, shared_buffer);
-		uk_sev_serial_printf(ghcb, "shared buffer: 0x%lx\n", shared_buffer);
+		    ghcb_paddr + __offsetof(struct ghcb, shared_buffer);
+		uk_sev_serial_printf(ghcb, "shared buffer: 0x%lx\n",
+				     shared_buffer);
 		uk_sev_serial_printf(ghcb, "exit_reason: 0x%lx\n", exitcode);
-		uk_sev_serial_printf(ghcb, "ghcb: 0x%lx\n", ghcb_phys);
-
+		uk_sev_serial_printf(ghcb, "ghcb: 0x%lx\n", ghcb_paddr);
 
 		/* shared_buffer = */
 		/*     ghcb_phys + __offsetof(struct ghcb, shared_buffer); */
 
 		memcpy_isr(ghcb->shared_buffer, reg_ref, sz);
 		uk_sev_serial_printf(
-		    ghcb, "Requesting write: %d size, value %x to 0x%lx\n", exitinfo2,
-		    *reg_ref, exitinfo1);
+		    ghcb, "Requesting write: %d size, value %x to 0x%lx\n",
+		    exitinfo2, *reg_ref, exitinfo1);
 
 		GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_scratch, shared_buffer);
 
@@ -670,10 +744,11 @@ static int uk_sev_handle_mmio_inst(struct __regs *regs, struct ghcb *ghcb,
 		exitcode = SVM_VMGEXIT_MMIO_READ;
 		exitinfo1 = (__u64)ukplat_virt_to_phys((void *)*mem_ref) + disp;
 		exitinfo2 = sz;
-		ghcb_phys = ukplat_virt_to_phys(ghcb);
+		// ghcb_phys = ukplat_virt_to_phys(ghcb);
 		shared_buffer =
-		    ghcb_phys + __offsetof(struct ghcb, shared_buffer);
-		uk_sev_serial_printf(ghcb, "shared buffer: 0x%lx\n", shared_buffer);
+		    ghcb_paddr + __offsetof(struct ghcb, shared_buffer);
+		uk_sev_serial_printf(ghcb, "shared buffer: 0x%lx\n",
+				     shared_buffer);
 
 		/* shared_buffer = ukplat_virt_to_phys(ghcb->shared_buffer); */
 		GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_scratch, shared_buffer);
@@ -691,7 +766,7 @@ static int uk_sev_handle_mmio_inst(struct __regs *regs, struct ghcb *ghcb,
 		break;
 
 	default:
-		uk_sev_terminate(9,9);
+		uk_sev_terminate(9, 9);
 		return -ENOTSUP;
 	}
 
@@ -758,8 +833,21 @@ static int uk_sev_handle_msr(struct __regs *regs, struct ghcb *ghcb)
 	return 0;
 }
 
+static inline void spinlock_counted(struct uk_spinlock* lock){
+
+	int count = 0;
+	while(uk_spin_trylock(&ghcb_lock))
+	{
+		count++;
+		if (count == 5)
+			uk_sev_terminate(7, 7);
+	}
+}
 static int uk_sev_handle_vc(void *data)
 {
+	int count = 0;
+
+	uk_spin_lock(&ghcb_lock);
 	struct ukarch_trap_ctx *ctx = (struct ukarch_trap_ctx *)data;
 
 	int exit_code = ctx->error_code;
@@ -791,6 +879,7 @@ static int uk_sev_handle_vc(void *data)
 		return UK_EVENT_NOT_HANDLED;
 	}
 
+	uk_spin_unlock(&ghcb_lock);
 	return UK_EVENT_HANDLED;
 }
 
@@ -811,7 +900,8 @@ int uk_sev_mem_encrypt_init(void)
 	return 0;
 };
 
-int uk_sev_cpu_features_check(void){
+int uk_sev_cpu_features_check(void)
+{
 	__u32 eax, ebx, ecx, edx;
 
 	ukarch_x86_cpuid(0x8000001f, 0, &eax, &ebx, &ecx, &edx);
@@ -836,17 +926,14 @@ int uk_sev_cpu_features_check(void){
 	return 0;
 }
 
-
-
 int uk_sev_early_vc_handler_init(void)
 {
+	uk_spin_init(&ghcb_msr_lock);
 	uk_sev_boot_traps_table_init();
 	uk_sev_boot_gdt_init();
 	uk_sev_boot_idt_init();
 	ghcb_initialized = 0;
 	return 0;
 }
-
-
 
 UK_EVENT_HANDLER(UKARCH_TRAP_VC, uk_sev_handle_vc);
