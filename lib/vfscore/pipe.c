@@ -31,6 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "uk/isr/string.h"
 #define _GNU_SOURCE
 
 #include <uk/config.h>
@@ -730,13 +731,13 @@ static int pipe_mount_init(void)
 {
 	int ret;
 
-	p_mount.m_path = strdup("");
+	p_mount.m_path = strdup_isr("");
 	if (!p_mount.m_path) {
 		ret = -ENOMEM;
 		goto err_out;
 	}
 
-	p_mount.m_special = strdup("");
+	p_mount.m_special = strdup_isr("");
 	if (!p_mount.m_special) {
 		ret = -ENOMEM;
 		goto err_free_m_path;

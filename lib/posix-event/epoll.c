@@ -43,10 +43,12 @@
 #include <uk/config.h>
 #include <uk/init.h>
 
+#include <uk/isr/string.h>
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
+// #include <string.h>
 #include <stdlib.h>
 
 static uint64_t e_inode;
@@ -377,24 +379,26 @@ int epoll_pwait(int epfd, struct epoll_event *events, int maxevents,
 
 static int epoll_mount_init(void)
 {
+	uk_pr_info("Initializing epoll\n");
 	int ret;
 
-	epoll_mount.m_path = strdup("");
+	epoll_mount.m_path = strdup_isr("");
 	if (!epoll_mount.m_path) {
 		ret = -ENOMEM;
 		goto err_out;
 	}
 
-	epoll_mount.m_special = strdup("");
+	epoll_mount.m_special = strdup_isr("");
 	if (!epoll_mount.m_special) {
 		ret = -ENOMEM;
 		goto err_free_m_path;
 	}
 
+	uk_pr_info("Done\n");
 	return 0;
 
 err_free_m_path:
-	free(epoll_mount.m_path);
+	uk_free(uk_alloc_get_default(), epoll_mount.m_path);
 err_out:
 	return ret;
 }

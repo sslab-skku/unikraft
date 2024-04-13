@@ -10,9 +10,11 @@ LIBVIRTIO_MMIO_CINCLUDES-y  += -I$(UK_DRIV_LIBVIRTIO_BASE)/include
 # TODO Remove as soon as plat dependencies go away
 LIBVIRTIO_MMIO_CINCLUDES-y  += -I$(UK_PLAT_COMMON_BASE)/include
 
-LIBVIRTIO_MMIO_SRCS-y += $(LIBVIRTIO_MMIO_BASE)/virtio_mmio.c
-LIBVIRTIO_MMIO_SRCS-y += $(LIBVIRTIO_MMIO_BASE)/virtio_mmio_cmdl.c
+LIBVIRTIO_MMIO_SRCS-y += $(LIBVIRTIO_MMIO_BASE)/virtio_mmio.c|isr
+LIBVIRTIO_MMIO_SRCS-y += $(LIBVIRTIO_MMIO_BASE)/virtio_mmio_cmdl.c|isr
 
 ifeq ($(CONFIG_VIRTIO_MMIO_LINUX_COMPAT_CMDLINE),y)
 $(eval $(call addlib_paramprefix,libvirtio_mmio,virtio_mmio))
 endif
+
+LIBVIRTIO_MMIO_LDFLAGS-$(CONFIG_OBLIVIUM) +=	 -Wl,-T,$(CONFIG_UK_BASE)/isr.ld

@@ -64,7 +64,7 @@ int strcmp_isr(const char *str1, const char *str2);
 size_t strcspn_isr(const char *s, const char *c);
 size_t strspn_isr(const char *s, const char *c);
 char *strtok_isr(char *restrict s, const char *restrict sep, char **restrict p);
-
+char *strdup_isr(const char *s);
 #ifdef __cplusplus
 }
 #endif

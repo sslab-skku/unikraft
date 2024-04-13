@@ -58,10 +58,15 @@
  * ----------------------------------------------------------------------
  */
 
+#include <uk/alloc.h>
 #include <uk/isr/string.h>
 #include <uk/arch/types.h>
 #include <stdint.h>
 #include <limits.h>
+
+#ifdef CONFIG_OBLIVIUM
+#include "oblivium/oblivium.h"
+#endif
 
 void *memcpy_isr(void *dst, const void *src, size_t len)
 {
@@ -75,7 +80,7 @@ void *memcpy_isr(void *dst, const void *src, size_t len)
 
 void *memset_isr(void *ptr, int val, size_t len)
 {
-	__u8 *p = (__u8 *) ptr;
+	__u8 *p = (__u8 *)ptr;
 
 	for (; len > 0; --len)
 		*(p++) = (__u8)val;
@@ -98,10 +103,10 @@ void *memrchr_isr(const void *m, int c, size_t n)
 {
 	const unsigned char *s = m;
 
-	c = (unsigned char) c;
+	c = (unsigned char)c;
 	while (n--)
 		if (s[n] == c)
-			return (void *) (s + n);
+			return (void *)(s + n);
 	return 0;
 }
 
@@ -147,7 +152,7 @@ size_t strlen_isr(const char *str)
 size_t strnlen_isr(const char *str, size_t len)
 {
 	const char *p = memchr_isr(str, 0, len);
-	return p ? (size_t) (p - str) : len;
+	return p ? (size_t)(p - str) : len;
 }
 
 char *strncpy_isr(char *dst, const char *src, size_t len)
@@ -196,12 +201,12 @@ int strcmp_isr(const char *str1, const char *str2)
 
 /* The following code is taken from musl libc */
 #define ALIGN (sizeof(size_t))
-#define ONES ((size_t) -1 / UCHAR_MAX)
+#define ONES ((size_t)-1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
-#define HASZERO(x) (((x) - ONES) & ~(x) & HIGHS)
-#define BITOP(a, b, op) \
-		((a)[(size_t)(b) / (8*sizeof *(a))] op \
-		(size_t)1 << ((size_t)(b) % (8 * sizeof *(a))))
+#define HASZERO(x) (((x)-ONES) & ~(x)&HIGHS)
+#define BITOP(a, b, op)                                                        \
+	((a)[(size_t)(b) / (8 * sizeof *(a))] op(size_t) 1                     \
+	 << ((size_t)(b) % (8 * sizeof *(a))))
 
 char *strchrnul_isr(const char *s, int c)
 {
@@ -239,34 +244,34 @@ size_t strcspn_isr(const char *s, const char *c)
 	size_t byteset[32 / sizeof(size_t)];
 
 	if (!c[0] || !c[1])
-		return strchrnul_isr(s, *c)-a;
+		return strchrnul_isr(s, *c) - a;
 
 	memset_isr(byteset, 0, sizeof(byteset));
 	for (; *c && BITOP(byteset, *(unsigned char *)c, |=); c++)
 		;
 	for (; *s && !BITOP(byteset, *(unsigned char *)s, &); s++)
 		;
-	return s-a;
+	return s - a;
 }
 
 size_t strspn_isr(const char *s, const char *c)
 {
 	const char *a = s;
-	size_t byteset[32 / sizeof(size_t)] = { 0 };
+	size_t byteset[32 / sizeof(size_t)] = {0};
 
 	if (!c[0])
 		return 0;
 	if (!c[1]) {
 		for (; *s == *c; s++)
 			;
-		return s-a;
+		return s - a;
 	}
 
 	for (; *c && BITOP(byteset, *(unsigned char *)c, |=); c++)
 		;
 	for (; *s && BITOP(byteset, *(unsigned char *)s, &); s++)
 		;
-	return s-a;
+	return s - a;
 }
 
 char *strtok_isr(char *restrict s, const char *restrict sep, char **restrict p)
@@ -286,7 +291,7 @@ char *strtok_isr(char *restrict s, const char *restrict sep, char **restrict p)
 
 /* strlcpy has different ALIGN */
 #undef ALIGN
-#define ALIGN (sizeof(size_t)-1)
+#define ALIGN (sizeof(size_t) - 1)
 size_t strlcpy_isr(char *d, const char *s, size_t n)
 {
 	char *d0 = d;
@@ -297,17 +302,18 @@ size_t strlcpy_isr(char *d, const char *s, size_t n)
 		goto finish;
 
 	if (((uintptr_t)s & ALIGN) == ((uintptr_t)d & ALIGN)) {
-		for (; ((uintptr_t) s & ALIGN) && n && (*d = *s);
-		     n--, s++, d++)
+		for (; ((uintptr_t)s & ALIGN) && n && (*d = *s); n--, s++, d++)
 			;
 
 		if (n && *s) {
-			wd = (void *)d; ws = (const void *)s;
+			wd = (void *)d;
+			ws = (const void *)s;
 			for (; n >= sizeof(size_t) && !HASZERO(*ws);
 			     n -= sizeof(size_t), ws++, wd++)
 				*wd = *ws;
 
-			d = (void *)wd; s = (const void *)ws;
+			d = (void *)wd;
+			s = (const void *)ws;
 		}
 	}
 
@@ -315,7 +321,7 @@ size_t strlcpy_isr(char *d, const char *s, size_t n)
 		;
 	*d = 0;
 finish:
-	return d-d0 + strlen_isr(s);
+	return d - d0 + strlen_isr(s);
 }
 
 size_t strlcat_isr(char *d, const char *s, size_t n)
@@ -323,5 +329,18 @@ size_t strlcat_isr(char *d, const char *s, size_t n)
 	size_t l = strnlen_isr(d, n);
 	if (l == n)
 		return l + strlen_isr(s);
-	return l + strlcpy_isr(d+l, s, n-l);
+	return l + strlcpy_isr(d + l, s, n - l);
+}
+
+char *strdup_isr(const char *s)
+{
+	size_t l = strlen_isr(s);
+#if CONFIG_OBLIVIUM
+	char *d = uk_malloc(oblivium_get_unsafe_allocator(), l + 1);
+#else
+	char *d = uk_malloc(uk_alloc_get_default(), l + 1);
+#endif
+	if (!d)
+		return NULL;
+	return memcpy_isr(d, s, l + 1);
 }

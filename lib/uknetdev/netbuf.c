@@ -63,7 +63,7 @@ void uk_netbuf_init_indir(struct uk_netbuf *m,
 	    (__vaddr_t)buf,
 	    PAGE_ALIGN_UP((unsigned long)buflen) >> PAGE_SHIFT);
 	if (unlikely(rc)) {
-		UK_CRASH("Cannot set memory private: %d\n", rc);
+		UK_CRASH("Cannot set memory shared: %d\n", rc);
 	}
 #endif
 

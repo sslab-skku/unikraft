@@ -34,6 +34,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "uk/isr/string.h"
 #define _GNU_SOURCE
 
 #include <uk/socket_driver.h>
@@ -350,13 +351,13 @@ static int posix_socket_mount_init(void)
 {
 	int ret;
 
-	posix_socket_mount.m_path = strdup("");
+	posix_socket_mount.m_path = strdup_isr("");
 	if (!posix_socket_mount.m_path) {
 		ret = -ENOMEM;
 		goto err_out;
 	}
 
-	posix_socket_mount.m_special = strdup("");
+	posix_socket_mount.m_special = strdup_isr("");
 	if (!posix_socket_mount.m_special) {
 		ret = -ENOMEM;
 		goto err_free_m_path;

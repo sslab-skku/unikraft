@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "uk/isr/string.h"
 #define _GNU_SOURCE
 
 #include <vfscore/eventpoll.h>
@@ -469,13 +470,13 @@ static int eventfd_mount_init(void)
 {
 	int ret;
 
-	eventfd_mount.m_path = strdup("");
+	eventfd_mount.m_path = strdup_isr("");
 	if (!eventfd_mount.m_path) {
 		ret = -ENOMEM;
 		goto err_out;
 	}
 
-	eventfd_mount.m_special = strdup("");
+	eventfd_mount.m_special = strdup_isr("");
 	if (!eventfd_mount.m_special) {
 		ret = -ENOMEM;
 		goto err_free_m_path;
