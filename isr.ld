@@ -32,4 +32,4 @@ SECTIONS
 		*.isr.o (.bss .bss*)
 	}
 }
-INSERT AFTER .bss;
+INSERT BEFORE .bss;

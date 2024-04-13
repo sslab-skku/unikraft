@@ -41,29 +41,38 @@ SECTIONS
 	. = 0x100000;
 
 	_base_addr = .;		/* Symbol to represent the load base address */
-
-	/* Code */
-	_text = .;
-	.text :
+	_isr_text = .;
+	.isr_text :
 	{
 		/* prevent linker gc from removing multiboot header */
 		KEEP (*(.data.boot))
 		KEEP (*(.data.boot.*))
 		*(.text.boot)
 		*(.text.boot.*)
+		*(.isr_text)
+	} : text
+	_eisr_text = .;
 
+	. = ALIGN(__PAGE_SIZE);
+	_isr_rodata = .;
+	.isr_rodata :
+	{
+		*(.isr_rodata)
+		*(.isr_rodata.*)
+	} :rodata
+	_eisr_rodata = .;
+
+
+	/* Code */
+	. = ALIGN(__PAGE_SIZE);
+	_text = .;
+	.text :
+	{
 		*(.text)
 		*(.text.*)
 	} :text
 	_etext = .;
 
-	. = ALIGN(__PAGE_SIZE);
-	_isr_text = .;
-	.isr_text :
-	{
-		*(.isr_text)
-	} : text
-	_eisr_text = .;
 
 	/* Read-only data */
 	. = ALIGN(__PAGE_SIZE);
@@ -75,14 +84,6 @@ SECTIONS
 	} :rodata
 	_erodata = .;
 
-	. = ALIGN(__PAGE_SIZE);
-	_isr_rodata = .;
-	.isr_rodata :
-	{
-		*(.isr_rodata)
-		*(.isr_rodata.*)
-	} :rodata
-	_eisr_rodata = .;
 
 	EXCEPTION_SECTIONS
 

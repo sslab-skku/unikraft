@@ -163,16 +163,6 @@
 	_tls_end = . + SIZEOF(.tbss);
 
 #define DATA_SECTIONS							\
-	/* Read-write data (initialized) */				\
-	. = ALIGN(__PAGE_SIZE);						\
-	_data = .;							\
-	.data :								\
-	{								\
-		*(.data)						\
-		*(.data.*)						\
-	} UK_SEGMENT_DATA						\
-	_edata = .;							\
-									\
 	. = ALIGN(__PAGE_SIZE);						\
 	_isr_data = .;							\
 	.isr_data :							\
@@ -187,16 +177,6 @@
 	 * just before .bss						\
 	 */								\
 									\
-	/* Read-write data (uninitialized) */				\
-	. = ALIGN(__PAGE_SIZE);						\
-	__bss_start = .;						\
-	.bss :								\
-	{								\
-		*(.bss)							\
-		*(.bss.*)						\
-		. = ALIGN(__PAGE_SIZE);					\
-	}								\
-	__bss_end = .;							\
 									\
 	. = ALIGN(__PAGE_SIZE);						\
 	__isr_bss_start = .;						\
@@ -207,7 +187,28 @@
 		*(COMMON)						\
 		. = ALIGN(__PAGE_SIZE);					\
 	}								\
-	__isr_bss_end = .;
+	__isr_bss_end = .;						\
+									\
+	/* Read-write data (initialized) */				\
+	. = ALIGN(__PAGE_SIZE);						\
+	_data = .;							\
+	.data :								\
+	{								\
+		*(.data)						\
+		*(.data.*)						\
+	} UK_SEGMENT_DATA						\
+	_edata = .;							\
+									\
+	/* Read-write data (uninitialized) */				\
+	. = ALIGN(__PAGE_SIZE);						\
+	__bss_start = .;						\
+	.bss :								\
+	{								\
+		*(.bss)							\
+		*(.bss.*)						\
+		. = ALIGN(__PAGE_SIZE);					\
+	}								\
+	__bss_end = .;
 
 #define DISCARDS							\
 	/DISCARD/ :							\
