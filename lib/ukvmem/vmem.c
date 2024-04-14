@@ -336,7 +336,7 @@ static int vmem_vma_split(struct uk_vma *vma, __vaddr_t vaddr,
 		return rc;
 
 	if (!v) {
-		v = uk_malloc(vma->vas->a, sizeof(struct uk_vma));
+		v = uk_calloc(vma->vas->a, 1, sizeof(struct uk_vma));
 		if (unlikely(!v))
 			return -ENOMEM;
 	}
@@ -676,7 +676,7 @@ int uk_vma_map(struct uk_vas *vas, __vaddr_t *vaddr, __sz len,
 		if (unlikely(rc))
 			return rc;
 	} else {
-		vma = uk_malloc(vas->a, sizeof(struct uk_vma));
+		vma = uk_calloc(vas->a, 1, sizeof(struct uk_vma));
 		if (unlikely(!vma))
 			return -ENOMEM;
 
