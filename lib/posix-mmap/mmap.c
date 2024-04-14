@@ -37,6 +37,10 @@ static inline unsigned long prot_to_attr(int prot)
 	if (prot & PROT_EXEC)
 		attr |= PAGE_ATTR_PROT_EXEC;
 
+#if CONFIG_HAVE_MEM_ENCRYPT
+	 attr |= PAGE_ATTR_ENCRYPT;
+#endif
+
 	return attr;
 }
 
