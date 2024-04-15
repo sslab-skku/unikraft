@@ -73,7 +73,7 @@ struct uk_pagetable {
 #define PAGE_FLAG_FORCE_SIZE	0x04 /* Force the page size specified with \
 				      * PAGE_FLAG_SIZE() \
 				      */
-#define PAGE_FLAG_MAPX_PT_PAGES	0x10 /* Force running mapx on page table pages	*/
+#define PAGE_FLAG_MAPX_PT_PAGES	0x08 /* Force running mapx on page table pages	*/
 
 #define PAGE_FLAG_SIZE_SHIFT	4
 #define PAGE_FLAG_SIZE_BITS	4
