@@ -29,6 +29,20 @@ static inline void vmgexit(void){
 #define PVALIDATE_PAGE_SIZE_4K				0
 #define PVALIDATE_PAGE_SIZE_2M				1
 
+static inline int pvalidate_noupdate(__u64 vaddr, int page_size)
+{
+	int rc;
+	int rmp_not_updated;
+	int validated = 1;
+
+	asm volatile(PVALIDATE_OPCODE
+		     : "=a"(rc), "=@ccc"(rmp_not_updated)
+		     : "a"(vaddr), "c"(page_size), "d"(validated)
+		     : "memory", "cc");
+
+	return rc;
+}
+
 static inline int pvalidate(__u64 vaddr, int page_size, int validated)
 {
 	int rc;

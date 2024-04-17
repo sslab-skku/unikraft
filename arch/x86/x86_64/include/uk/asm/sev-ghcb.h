@@ -69,7 +69,7 @@ struct ghcb {
 #define SEV_GHCB_MSR_GHCB_DATA_MASK                                            \
 	((UK_BIT_ULL(64) - 1) & ~SEV_GHCB_MSR_GHCB_INFO_MASK)
 
-#define SEV_GHCB_MSR_RESP_CODE(msr)		((msr) & SEV_GHCB_MSR_GHCB_INFO_MASK)
+#define SEV_GHCB_MSR_RESP_CODE(msr)		(int)((msr) & SEV_GHCB_MSR_GHCB_INFO_MASK)
 
 
 /* Value in GHCBInfo (GHCB[11:0]) for GHCB MSR Protocol*/
