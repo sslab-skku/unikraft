@@ -63,9 +63,13 @@ extern "C" {
 static inline void virtio_cwrite_bytes(const void *addr, const __u8 offset,
 				       const void *buf, int len, int type_len)
 {
+#ifdef CONFIG_LIBUKSEV
+	uk_sev_cwrite_bytes(addr, offset, buf, len, type_len);
+#else
 	int i = 0;
 	__u16 io_addr;
 	int count;
+
 
 	count  = len / type_len;
 	for (i = 0; i < count; i++) {
@@ -84,11 +88,16 @@ static inline void virtio_cwrite_bytes(const void *addr, const __u8 offset,
 			UK_CRASH("Unsupported virtio write operation\n");
 		}
 	}
+#endif
 }
 
 static inline void virtio_cread_bytes(const void *addr, const __u8 offset,
 				      void *buf, int len, int type_len)
 {
+
+#ifdef CONFIG_LIBUKSEV
+	uk_sev_cread_bytes(addr, offset, buf, len, type_len);
+#else
 	int i = 0;
 	__u16 io_addr;
 	int count;
@@ -113,6 +122,7 @@ static inline void virtio_cread_bytes(const void *addr, const __u8 offset,
 			UK_CRASH("Unsupported virtio read operation\n");
 		}
 	}
+#endif
 }
 
 static inline
@@ -131,8 +141,7 @@ void virtio_mmio_cwrite_bytes(const void *addr, const __u8 offset,
 		io_addr = ((unsigned long)addr) + offset + (i * type_len);
 		/* HELP: Somehow when you remove this print, uksev does not
 		 * emulate the write / interrupt is not triggered. */
-		barrier();
-		/* uk_pr_info("\n"); */
+		/* barrier(); */
 		switch (type_len) {
 		case 1:
 			writeb((__u8 *)io_addr, ((__u8 *)buf)[i * type_len]);
@@ -155,6 +164,10 @@ static inline
 void virtio_mmio_cread_bytes(const void *addr, const __u8 offset,
 			     void *buf, int len, int type_len)
 {
+
+#ifdef CONFIG_LIBUKSEV
+	uk_sev_cread_bytes(addr, offset, buf, len, type_len);
+#else
 	int i = 0;
 	__u64 io_addr;
 	int count;
@@ -179,6 +192,7 @@ void virtio_mmio_cread_bytes(const void *addr, const __u8 offset,
 			UK_CRASH("Unsupported virtio read operation\n");
 		}
 	}
+#endif
 }
 #else  /* !CONFIG_ARCH_X86_64 */
 

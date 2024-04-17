@@ -50,7 +50,12 @@ int do_vmm_comm_exception_no_ghcb(struct __regs *regs,
 
 void uk_sev_cwrite_bytes(const void *addr, const __u8 offset,
 			      const void *buf, int len, int type_len);
+
+void uk_sev_cread_bytes(const void *addr, const __u8 offset,
+			      void *buf, int len, int type_len);
 void do_vmm_comm_exception(struct __regs *regs, unsigned long error_code);
 void uk_sev_terminate(int set, int reason);
+
+void uk_sev_serial_printf(struct ghcb *ghcb, const char *fmt, ...);
 
 #endif /* __UK_SEV_H__ */

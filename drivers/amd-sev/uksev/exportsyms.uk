@@ -10,3 +10,5 @@ uk_sev_set_memory_private
 uk_sev_set_memory_shared
 uk_sev_get_ghcb_page
 uk_sev_cwrite_bytes
+uk_sev_cread_bytes
+uk_sev_serial_printf
