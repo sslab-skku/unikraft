@@ -62,8 +62,12 @@ __nsec ukplat_wall_clock(void)
  */
 static int timer_handler(void *arg __unused)
 {
+#if CONFIG_OBLIVIUM_VALIDATE_ACTIVE_PAGE
+	return 0;
+#else
 	/* Yes, we handled the irq. */
 	return 1;
+#endif
 }
 
 /* must be called before interrupts are enabled */
