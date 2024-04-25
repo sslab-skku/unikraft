@@ -80,8 +80,10 @@ static inline void pic_8259_elcr2_level_irq10_11(void)
 
 
 
+unsigned long boot_time;
 void __noreturn uk_efi_jmp_to_kern()
 {
+	boot_time = rdtsc();
 	struct ukplat_bootinfo *bi = ukplat_bootinfo_get();
 
 	if (unlikely(!bi))

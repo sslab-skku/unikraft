@@ -176,6 +176,10 @@ static struct uk_alloc *heap_init()
 	free_pages  = pt->fa->free_memory >> PAGE_SHIFT;
 	alloc_pages = free_pages - PT_PAGES(free_pages);
 
+#if CONFIG_OBLIVIUM_UNSAFE_HEAP_PAGES
+	/* Limit the heap size to have comparable perfomance */
+	alloc_pages = CONFIG_OBLIVIUM_UNSAFE_HEAP_PAGES;
+#endif
 	vaddr = heap_base;
 
 	rc = uk_vma_map_anon(&kernel_vas, &vaddr,
@@ -210,7 +214,7 @@ static struct uk_alloc *heap_init()
 			  alloc_pages << PAGE_SHIFT);
 	if (unlikely(!a))
 		return NULL;
-#endif /* CONFIG_OBLIVIUM_HEAP */
+#endif /* CONFIG_OBLIVIUM */
 
 #else /* CONFIG_LIBUKVMEM */
 	free_pages  = pt->fa->free_memory >> PAGE_SHIFT;
