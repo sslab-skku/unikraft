@@ -129,7 +129,7 @@ ifeq ($(CONFIG_KVM_BOOT_PROTO_EFI_STUB),y)
 LIBKVMPLAT_SRCS-y                          += $(LIBKVMPLAT_BASE)/efi.c|isr
 endif
 
-LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/bootinfo.c|common
+LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/bootinfo.c|isr
 LIBKVMPLAT_SRCS-$(CONFIG_LIBFDT) += $(UK_PLAT_COMMON_BASE)/bootinfo_fdt.c|common
 LIBKVMPLAT_SRCS-y		 += $(UK_PLAT_COMMON_BASE)/bootinfo.lds.S|common
 
