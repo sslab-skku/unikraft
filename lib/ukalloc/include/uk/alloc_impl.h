@@ -41,6 +41,12 @@
 
 #include <uk/alloc.h>
 
+#if CONFIG_OBLIVIUM
+#include <uk/arch/paging.h>
+#include <oblivium/oblivium.h>
+#include <oblivium/config.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -121,6 +127,10 @@ static inline void _uk_alloc_stats_count_alloc(struct uk_alloc_stats *stats,
 		stats->tot_nb_allocs++;
 
 		stats->cur_nb_allocs++;
+#if CONFIG_OBLIVIUM
+	if (PAGE_Lx_ALIGN_DOWN((__vaddr_t)stats,0) == OBLIVIUM_PROCESS_HEAP_BASE)
+		oblivium_get_global_stats()->heap_mem_used += size;
+#endif
 		stats->cur_mem_use += size;
 		stats->last_alloc_size = size;
 		_uk_alloc_stats_refresh_minmax(stats);
@@ -141,6 +151,11 @@ static inline void _uk_alloc_stats_count_free(struct uk_alloc_stats *stats,
 
 		stats->cur_nb_allocs--;
 		stats->cur_mem_use -= size;
+
+#if CONFIG_OBLIVIUM
+	if (PAGE_Lx_ALIGN_DOWN((__vaddr_t)stats,0) == OBLIVIUM_PROCESS_HEAP_BASE)
+		oblivium_get_global_stats()->heap_mem_used -= size;
+#endif
 		_uk_alloc_stats_refresh_minmax(stats);
 	}
 	uk_preempt_enable();
