@@ -12,8 +12,25 @@
 #include <uk/print.h>
 #include <uk/config.h>
 
+
+
+#if CONFIG_OBLIVIUM_PROFILE_PF
+#include <oblivium/oblivium.h>
+static inline unsigned long rdtsc(void)
+{
+	unsigned long l, h;
+
+	__asm__ __volatile__("rdtsc" : "=a"(l), "=d"(h));
+	return (h << 32) | l;
+}
+#endif
+
 static int vmem_arch_pagefault(void *data)
 {
+
+	#if CONFIG_OBLIVIUM_PROFILE_PF
+	int timer = rdtsc();
+	#endif
 	struct ukarch_trap_ctx *ctx = (struct ukarch_trap_ctx *)data;
 	__vaddr_t vaddr = (__vaddr_t)ctx->fault_address;
 	const char *faultstr[] __maybe_unused = {
@@ -35,6 +52,10 @@ static int vmem_arch_pagefault(void *data)
 		faulttype |= UK_VMA_FAULT_MISCONFIG;
 
 	rc = vmem_pagefault(vaddr, faulttype, ctx->regs);
+	#if CONFIG_OBLIVIUM_PROFILE_PF
+	timer = rdtsc() - timer;
+	oblivium_get_global_stats()->total_fault_time += timer;
+	#endif
 	if (unlikely(rc < 0)) {
 		uk_pr_debug("Cannot handle %s page fault at 0x%"__PRIvaddr
 			    " (ec: 0x%x): %d\n",
