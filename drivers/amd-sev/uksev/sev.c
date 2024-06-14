@@ -21,6 +21,7 @@
 #include "uk/plat/paging.h"
 #include <x86/cpu.h>
 #include "x86/desc.h"
+#include "x86/irq.h"
 #include "x86/traps.h"
 #include <stdio.h>
 #include <uk/sev.h>
@@ -90,6 +91,10 @@ struct ghcb *uk_sev_get_ghcb_page()
 int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2)
 {
+
+	unsigned long flags;
+	local_irq_save(flags);
+
 	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitcode, exitcode);
 	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitinfo1, exitinfo1);
 	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitinfo2, exitinfo2);
@@ -104,6 +109,7 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
 	/* TODO: Verify VMM return */
+	local_irq_restore(flags);
 	return 0;
 };
 
@@ -927,6 +933,9 @@ static int uk_sev_handle_vc(void *data)
 	case SVM_VMEXIT_MSR:
 		rc = uk_sev_handle_msr(ctx->regs, ghcb);
 		break;
+	// case SVM_VMEXIT_DR0_WRITE:
+	// 	rc = uk_sev_handle_msr(ctx->regs, ghcb);
+	// 	break;
 	default:
 		uk_sev_terminate(2, exit_code);
 		return UK_EVENT_NOT_HANDLED;
