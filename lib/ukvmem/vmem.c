@@ -1059,7 +1059,7 @@ int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 	if (unlikely(!vas || vas->flags & UK_VAS_FLAG_NO_PAGING))
 		return -EFAULT;
 
-	uk_spin_lock(&vas->pf_lock);
+	// uk_spin_lock(&vas->pf_lock);
 
 
 	/* If the page fault was caused by an access to a region not covered by
@@ -1119,7 +1119,7 @@ int vmem_pagefault(__vaddr_t vaddr, unsigned int type, struct __regs *regs)
 	rc = ukplat_page_mapx(pt, vbase, 0, 1, ctx.vma->attr,
 				PAGE_FLAG_SIZE(lvl) | flags, &mapx);
 
-	uk_spin_unlock(&vas->pf_lock);
+	// uk_spin_unlock(&vas->pf_lock);
 	return rc;
 }
 #endif /* CONFIG_HAVE_PAGING */
