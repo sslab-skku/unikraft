@@ -63,6 +63,8 @@ struct ghcb {
 } __packed;
 
 #define SEV_ES_MSR_GHCB					0xc0010130
+#define MSR_AMD64_GUEST_TSC_FREQ			0xc0010134
+
 /* GHCB MSR[11:0]*/
 #define SEV_GHCB_MSR_GHCB_INFO_MASK			(UK_BIT(12) - 1)
 /* GHCB MSR[63:12]*/
