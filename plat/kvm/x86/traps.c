@@ -60,11 +60,13 @@
  *  └──────────────────┘     └──────────────────┘      └────────────────────┘
  */
 __align(STACK_SIZE) /* IST1 */
-char cpu_intr_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE/2];
+char cpu_intr_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
 __align(STACK_SIZE) /* IST2 */
-char cpu_trap_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE/2];
+char cpu_trap_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
 __align(STACK_SIZE) /* IST3 */
-char cpu_crit_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE/2];
+char cpu_crit_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
+__align(STACK_SIZE) /* IST3 */
+char cpu_wtf_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
 
 static __align(8)
 struct tss64 cpu_tss[CONFIG_UKPLAT_LCPU_MAXCOUNT];
@@ -125,6 +127,8 @@ static void tss_init(__lcpuidx idx)
 		(__u64) &cpu_trap_stack[idx][sizeof(cpu_trap_stack[idx])];
 	cpu_tss[idx].ist[2] =
 		(__u64) &cpu_crit_stack[idx][sizeof(cpu_crit_stack[idx])];
+	cpu_tss[idx].ist[3] =
+		(__u64) &cpu_wtf_stack[idx][sizeof(cpu_wtf_stack[idx])];
 
 	tss_desc = (void *) &cpu_gdt64[idx][GDT_DESC_TSS_LO];
 	tss_desc->limit_lo	= sizeof(cpu_tss[idx]);
@@ -143,8 +147,17 @@ static void tss_init(__lcpuidx idx)
 DECLARE_TRAP_EVENT(UKARCH_TRAP_NMI);
 
 DECLARE_TRAP_EC(nmi,           "NMI",                  UKARCH_TRAP_NMI)
+
+#if CONFIG_OBLIVIUM
+DECLARE_TRAP_EVENT(UKARCH_TRAP_DOUBLE_FAULT);
+DECLARE_TRAP_EC(double_fault,  "double fault",         UKARCH_TRAP_DOUBLE_FAULT)
+#else
 DECLARE_TRAP_EC(double_fault,  "double fault",         NULL)
+#endif
+
 DECLARE_TRAP_EC(virt_error,    "virtualization error", NULL)
+
+
 
 static struct seg_gate_desc64 cpu_idt[IDT_NUM_ENTRIES] __align(8);
 static struct desc_table_ptr64 idtptr;
@@ -194,12 +207,12 @@ void traps_table_init(void)
 	FILL_TRAP_GATE(divide_error,	2);
 	FILL_TRAP_GATE(debug,		3); /* runs on IST3 (cpu_crit_stack) */
 	FILL_TRAP_GATE(nmi,		3); /* runs on IST3 (cpu_crit_stack) */
-	FILL_TRAP_GATE(int3,		3); /* runs on IST3 (cpu_crit_stack) */
+	FILL_TRAP_GATE(int3,		4); /* runs on IST3 (cpu_crit_stack) */
 	FILL_TRAP_GATE(overflow,	2);
 	FILL_TRAP_GATE(bounds,		2);
 	FILL_TRAP_GATE(invalid_op,	2);
 	FILL_TRAP_GATE(no_device,	2);
-	FILL_TRAP_GATE(double_fault,	3); /* runs on IST3 (cpu_crit_stack) */
+	FILL_TRAP_GATE(double_fault,	4); /* runs on IST3 (cpu_crit_stack) */
 
 	FILL_TRAP_GATE(invalid_tss,	2);
 	FILL_TRAP_GATE(no_segment,	2);
