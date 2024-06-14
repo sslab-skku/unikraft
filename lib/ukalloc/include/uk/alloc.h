@@ -34,11 +34,13 @@
 #ifndef __UK_ALLOC_H__
 #define __UK_ALLOC_H__
 
+#include "uk/arch/paging.h"
 #include <uk/arch/types.h>
 #include <uk/config.h>
 #include <uk/assert.h>
 #include <uk/essentials.h>
 #include <errno.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -145,13 +147,24 @@ static inline void *uk_do_malloc(struct uk_alloc *a, __sz size)
 	return a->malloc(a, size);
 }
 
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+#include <oblivium/oram/alloc.h>
+#endif
+
 static inline void *uk_malloc(struct uk_alloc *a, __sz size)
 {
 	if (unlikely(!a)) {
 		errno = ENOMEM;
 		return __NULL;
 	}
-	return uk_do_malloc(a, size);
+	void* ret = uk_do_malloc(a, size);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_alloc(a, ret, size);
+#endif
+
+	return ret;
 }
 
 static inline void *uk_do_calloc(struct uk_alloc *a,
@@ -168,7 +181,14 @@ static inline void *uk_calloc(struct uk_alloc *a,
 		errno = ENOMEM;
 		return __NULL;
 	}
-	return uk_do_calloc(a, nmemb, size);
+
+	void *ret = uk_do_calloc(a, nmemb, size);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_alloc(a, ret, nmemb * size);
+#endif
+
+	return ret;
 }
 
 #define uk_do_zalloc(a, size) uk_do_calloc((a), 1, (size))
@@ -178,7 +198,10 @@ static inline void *uk_do_realloc(struct uk_alloc *a,
 				  void *ptr, __sz size)
 {
 	UK_ASSERT(a);
-	return a->realloc(a, ptr, size);
+
+	void* ret = a->realloc(a, ptr, size);
+
+	return ret;
 }
 
 static inline void *uk_realloc(struct uk_alloc *a, void *ptr, __sz size)
@@ -187,7 +210,15 @@ static inline void *uk_realloc(struct uk_alloc *a, void *ptr, __sz size)
 		errno = ENOMEM;
 		return __NULL;
 	}
-	return uk_do_realloc(a, ptr, size);
+
+	void* ret = uk_do_realloc(a, ptr, size);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_free(a, ptr);
+	superblock_handle_alloc(a, ret, size);
+#endif
+
+	return ret;
 }
 
 static inline int uk_do_posix_memalign(struct uk_alloc *a, void **memptr,
@@ -204,7 +235,14 @@ static inline int uk_posix_memalign(struct uk_alloc *a, void **memptr,
 		*memptr = __NULL;
 		return ENOMEM;
 	}
-	return uk_do_posix_memalign(a, memptr, align, size);
+
+	int ret = uk_do_posix_memalign(a, memptr, align, size);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_alloc(a, *memptr, size);
+#endif
+
+	return ret;
 }
 
 static inline void *uk_do_memalign(struct uk_alloc *a,
@@ -219,7 +257,14 @@ static inline void *uk_memalign(struct uk_alloc *a,
 {
 	if (unlikely(!a))
 		return __NULL;
-	return uk_do_memalign(a, align, size);
+
+	void* ret = uk_do_memalign(a, align, size);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_alloc(a, ret, size);
+#endif
+
+	return ret;
 }
 
 static inline void uk_do_free(struct uk_alloc *a, void *ptr)
@@ -231,6 +276,10 @@ static inline void uk_do_free(struct uk_alloc *a, void *ptr)
 static inline void uk_free(struct uk_alloc *a, void *ptr)
 {
 	uk_do_free(a, ptr);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_free(a, ptr);
+#endif
 }
 
 static inline void *uk_do_palloc(struct uk_alloc *a, unsigned long num_pages)
@@ -243,7 +292,13 @@ static inline void *uk_palloc(struct uk_alloc *a, unsigned long num_pages)
 {
 	if (unlikely(!a || !a->palloc))
 		return __NULL;
-	return uk_do_palloc(a, num_pages);
+	void *ret = uk_do_palloc(a, num_pages);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_alloc(a, ret, num_pages * PAGE_SIZE);
+#endif
+
+	return ret;
 }
 
 static inline void uk_do_pfree(struct uk_alloc *a, void *ptr,
@@ -257,6 +312,10 @@ static inline void uk_pfree(struct uk_alloc *a, void *ptr,
 			    unsigned long num_pages)
 {
 	uk_do_pfree(a, ptr, num_pages);
+
+#if CONFIG_OBLIVIUM_MALLOC_SUPERBLOCK
+	superblock_handle_free(a, ptr);
+#endif
 }
 
 static inline int uk_alloc_addmem(struct uk_alloc *a, void *base,
