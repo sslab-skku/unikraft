@@ -93,7 +93,7 @@ void do_unhandled_trap(int trapnr, char *str, struct __regs *regs,
 	/* TODO revisit when UK_CRASH will also dump the registers */
 	dump_regs(regs);
 	uk_asmdumpk(KLVL_CRIT, (void *) regs->rip, 8);
-	UK_CRASH("Crashing\n");
+	UK_CRASH("Crashing (unhandled trap)\n");
 }
 
 void do_page_fault(struct __regs *regs, unsigned long error_code)
@@ -116,5 +116,5 @@ void do_page_fault(struct __regs *regs, unsigned long error_code)
 	dump_mem(regs->rsp);
 	dump_mem(regs->rbp);
 	dump_mem(regs->rip);
-	UK_CRASH("Crashing\n");
+	UK_CRASH("Crashing (Page fault)\n");
 }

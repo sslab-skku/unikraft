@@ -61,6 +61,7 @@ DECLARE_TRAP_EVENT(UKARCH_TRAP_MATH);
 DECLARE_TRAP_EVENT(UKARCH_TRAP_SECURITY);
 DECLARE_TRAP_EVENT(UKARCH_TRAP_X86_GP);
 
+
 DECLARE_TRAP_EC(divide_error,    "divide error",         UKARCH_TRAP_MATH)
 DECLARE_TRAP   (debug,           "debug",                UKARCH_TRAP_DEBUG)
 DECLARE_TRAP_EC(int3,            "int3",                 UKARCH_TRAP_DEBUG)
@@ -92,7 +93,7 @@ void do_unhandled_trap(int trapnr, char *str, struct __regs *regs,
 	/* TODO revisit when UK_CRASH will also dump the registers */
 	dump_regs(regs);
 	uk_asmdumpk(KLVL_CRIT, (void *) regs->rip, 8);
-	UK_CRASH("Crashing\n");
+	UK_CRASH("Crashing (Unhandled trap)\n");
 }
 
 void do_page_fault(struct __regs *regs, unsigned long error_code)
@@ -115,5 +116,5 @@ void do_page_fault(struct __regs *regs, unsigned long error_code)
 	dump_mem(regs->rsp);
 	dump_mem(regs->rbp);
 	dump_mem(regs->rip);
-	UK_CRASH("Crashing\n");
+	UK_CRASH("Crashing (pf)\n");
 }
