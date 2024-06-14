@@ -13,6 +13,10 @@
 #include <uk/config.h>
 
 
+#if CONFIG_OBLIVIUM
+#include <oblivium/breakpoint.h>
+#endif
+
 
 #if CONFIG_OBLIVIUM_PROFILE_PF
 #include <oblivium/oblivium.h>
@@ -70,3 +74,12 @@ static int vmem_arch_pagefault(void *data)
 
 UK_EVENT_HANDLER_PRIO(UKARCH_TRAP_PAGE_FAULT, vmem_arch_pagefault,
 		      CONFIG_LIBUKVMEM_PAGEFAULT_HANDLER_PRIO);
+
+#if CONFIG_OBLIVIUM
+int handle_debug(void *data)
+{
+	return handle_sw_breakpoint(data);
+}
+
+UK_EVENT_HANDLER_PRIO(UKARCH_TRAP_DEBUG, handle_debug, 0);
+#endif
