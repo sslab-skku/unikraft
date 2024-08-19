@@ -570,6 +570,7 @@ static int vmem_mapx_populate(struct uk_pagetable *pt __unused,
 		.pte   = *pte,
 		.level = level,
 		.regs  = __NULL,
+		.pt_vaddr = pt_vaddr,
 	};
 	int rc;
 

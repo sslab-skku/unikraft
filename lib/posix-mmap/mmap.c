@@ -16,6 +16,8 @@
 #include <uk/arch/lcpu.h>
 #include <uk/vmem.h>
 
+#include<oblivium/elf/core.h>
+
 #ifndef MAP_UNINITIALIZED
 #define MAP_UNINITIALIZED 0x4000000
 #endif /* !MAP_UNINITIALIZED */
@@ -47,6 +49,7 @@ static inline unsigned long prot_to_attr(int prot)
 static int do_mmap(void **addr, size_t len, int prot, int flags, int fd,
 		   off_t offset)
 {
+	// uk_pr_info("mmap called addr = %p len = %zu fd = %d\n", *addr, len, fd);
 	struct uk_vas *vas = uk_vas_get_active();
 	unsigned long vattr = prot_to_attr(prot);
 	unsigned long vflags = 0;
@@ -198,6 +201,10 @@ UK_SYSCALL_DEFINE(void *, mmap, void *, addr, size_t, len, int, prot,
 		  int, flags, int, fd, off_t, offset)
 {
 	int rc;
+	rc = oblivium_handle_mmap(fd, &addr, len, offset, prot, flags);
+	if (!rc){
+		return addr;
+	}
 
 	rc = do_mmap(&addr, len, prot, flags, fd, offset);
 	if (unlikely(rc)) {

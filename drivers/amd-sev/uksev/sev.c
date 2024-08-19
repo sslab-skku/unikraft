@@ -151,9 +151,49 @@ static inline int uk_sev_ghcb_cpuid(__u32 fn, __unused __u32 sub_fn, __u32 *eax,
  * Emulation of serial print, so that #VC is not triggered.
  */
 // #define SERIAL_PRINTF 1
+
+void uk_sev_serial_print(struct ghcb *ghcb, const char* buf ){
+	unsigned long orig_rax, orig_rdx, orig_rax_valid, orig_rdx_valid;
+	__u64 exitinfo1 = 0;
+	exitinfo1 |= UK_SEV_IOIO_TYPE_OUT;
+	exitinfo1 |= UK_SEV_IOIO_TYPE_OUT;
+	exitinfo1 |= UK_SEV_IOIO_SEG(UK_SEV_IOIO_SEG_DS);
+	exitinfo1 |= UK_SEV_IOIO_PORT(COM1_DATA);
+	exitinfo1 |= UK_SEV_IOIO_SZ8;
+	exitinfo1 |= UK_SEV_IOIO_A16;
+
+	/* Backup rax and rdx if they are set previously */
+	orig_rax_valid = GHCB_SAVE_AREA_GET_VALID(ghcb, rax);
+	orig_rdx_valid = GHCB_SAVE_AREA_GET_VALID(ghcb, rdx);
+
+	if (orig_rax_valid)
+		orig_rax = ghcb->save_area.rax;
+	if (orig_rdx_valid)
+		orig_rdx = ghcb->save_area.rdx;
+
+	for (int i = 0; i < MAX_SEV_PRINT_LEN; i++) {
+		if (buf[i] == '\0')
+			break;
+		if (buf[i] == '\n') {
+			GHCB_SAVE_AREA_SET_FIELD(ghcb, rax,
+						 '\r' & (UK_BIT(8) - 1));
+			uk_sev_ghcb_vmm_call(ghcb, SVM_VMEXIT_IOIO, exitinfo1,
+					     0);
+		}
+
+		GHCB_SAVE_AREA_SET_FIELD(ghcb, rax, buf[i] & (UK_BIT(8) - 1));
+		uk_sev_ghcb_vmm_call(ghcb, SVM_VMEXIT_IOIO, exitinfo1, 0);
+	}
+
+	/* Restore rax and rdx */
+	if (orig_rax_valid)
+		GHCB_SAVE_AREA_SET_FIELD(ghcb, rax, orig_rax);
+	if (orig_rdx_valid)
+		GHCB_SAVE_AREA_SET_FIELD(ghcb, rdx, orig_rdx);
+}
 void uk_sev_serial_printf(struct ghcb *ghcb, const char *fmt, ...)
 {
-#if SERIAL_PRINTF
+	// #if SERIAL_PRINTF
 	if (!ghcb_initialized)
 		return;
 
@@ -201,7 +241,7 @@ void uk_sev_serial_printf(struct ghcb *ghcb, const char *fmt, ...)
 		GHCB_SAVE_AREA_SET_FIELD(ghcb, rax, orig_rax);
 	if (orig_rdx_valid)
 		GHCB_SAVE_AREA_SET_FIELD(ghcb, rdx, orig_rdx);
-#endif
+	// #endif
 }
 
 int do_vmm_comm_exception_no_ghcb(struct __regs *regs, unsigned long error_code)
@@ -262,7 +302,8 @@ int uk_sev_set_pages_state(__vaddr_t vstart, __paddr_t pstart,
 		val = uk_sev_ghcb_msr_invoke(SEV_GHCB_MSR_SNP_PSC_REQ_VAL(
 		    page_state, paddr >> PAGE_SHIFT));
 
-		while (SEV_GHCB_MSR_RESP_CODE(val) != SEV_GHCB_MSR_SNP_PSC_RESP) {
+		while (SEV_GHCB_MSR_RESP_CODE(val)
+		       != SEV_GHCB_MSR_SNP_PSC_RESP) {
 			// uk_pr_warn("Expected: %d, returned: %d\n",
 			// 	   SEV_GHCB_MSR_SNP_PSC_RESP,
 			// 	   SEV_GHCB_MSR_RESP_CODE(val));
