@@ -120,7 +120,7 @@ void _uk_asmndumpk(int lvl, __u16 libid, const char *srcname,
 #define uk_asmndumpk(lvl, instr, len)					\
 	do {                                                            \
 		if ((lvl) <= KLVL_MAX)                                  \
-			_uk_asmdumpk((lvl), uk_libid_self(), __STR_BASENAME__, \
+			_uk_asmndumpk((lvl), uk_libid_self(), __STR_BASENAME__, \
 				     __LINE__, (instr), (len));		\
 	} while (0)
 #else /* CONFIG_LIBUKDEBUG_PRINTK */

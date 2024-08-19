@@ -36,6 +36,7 @@
 #include <uk/asmdump.h>
 #include <uk/assert.h>
 #include <errno.h>
+#include "Zydis/Formatter.h"
 #include "outf.h"
 
 #if CONFIG_LIBZYDIS
@@ -73,6 +74,8 @@ static int _asmdump(struct out_dev *o,
 	if (!ZYAN_SUCCESS(ZydisFormatterInit(&fmt,
 					     ZYDIS_FORMATTER_STYLE_ATT)))
 		return -1;
+	ZydisFormatterSetProperty(
+	    &fmt, ZYDIS_FORMATTER_PROP_FORCE_RELATIVE_BRANCHES, ZYAN_TRUE);
 
 	while (count) {
 		addr = ((__uptr) instr) + offset;
