@@ -38,7 +38,7 @@ PHDRS
 
 SECTIONS
 {
-	. = 0x100000;
+	. = 0x10000000;
 
 	_base_addr = .;		/* Symbol to represent the load base address */
 	_isr_text = .;
