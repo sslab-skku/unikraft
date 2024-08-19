@@ -141,7 +141,7 @@ static struct uk_alloc *heap_init()
 	heap_base = CONFIG_LIBUKBOOT_HEAP_BASE;
 
 #ifdef CONFIG_LIBUKVMEM
-#define HEAP_INITIAL_PAGES		16
+#define HEAP_INITIAL_PAGES		64
 #define HEAP_INITIAL_LEN		(HEAP_INITIAL_PAGES << PAGE_SHIFT)
 	/* In addition to paging, we have virtual address space management. We
 	 * will thus also represent the heap as a dedicated VMA to enable
@@ -180,8 +180,22 @@ static struct uk_alloc *heap_init()
 	/* Limit the heap size to have comparable perfomance */
 	alloc_pages = CONFIG_OBLIVIUM_UNSAFE_HEAP_PAGES;
 #endif
-	vaddr = heap_base;
 
+// #define REPLACE_ALLOC
+#ifdef REPLACE_ALLOC
+	vaddr = heap_base + HEAP_INITIAL_LEN;
+	rc = uk_vma_map_anon(&kernel_vas, &vaddr,
+			     (alloc_pages) << PAGE_SHIFT,
+			     pg_attr, UK_VMA_MAP_UNINITIALIZED,
+			     "new_heap");
+	if (unlikely(rc))
+		return NULL;
+	uk_alloc_unregister(a);
+	a = uk_tiny_init((void *)(heap_base + HEAP_INITIAL_LEN),
+			      (alloc_pages - HEAP_INITIAL_PAGES) << PAGE_SHIFT);
+	uk_pr_info("Heap allocator: %p\n", a);
+#else
+	vaddr = heap_base;
 	rc = uk_vma_map_anon(&kernel_vas, &vaddr,
 			     (alloc_pages + HEAP_INITIAL_PAGES) << PAGE_SHIFT,
 			     pg_attr, UK_VMA_MAP_UNINITIALIZED,
@@ -193,9 +207,11 @@ static struct uk_alloc *heap_init()
 			     (alloc_pages - HEAP_INITIAL_PAGES) << PAGE_SHIFT);
 	if (unlikely(rc))
 		return NULL;
+	#endif
+
 
 #if CONFIG_OBLIVIUM_HEAP
-	uk_alloc_unregister(a);
+	    uk_alloc_unregister(a);
 	/* We now initialize the real heap allocator that is used by rest of the
 	  *program. A new
 	 **/
