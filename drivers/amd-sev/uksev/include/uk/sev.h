@@ -57,5 +57,8 @@ void do_vmm_comm_exception(struct __regs *regs, unsigned long error_code);
 void uk_sev_terminate(int set, int reason);
 
 void uk_sev_serial_printf(struct ghcb *ghcb, const char *fmt, ...);
+void uk_sev_serial_print(struct ghcb *ghcb, const char *buf);
+int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
+			 __u64 exitinfo2);
 
 #endif /* __UK_SEV_H__ */
