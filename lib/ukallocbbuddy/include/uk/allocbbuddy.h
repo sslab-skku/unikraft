@@ -34,6 +34,7 @@
 #ifndef __UKALLOCBBUDDY_H__
 #define __UKALLOCBBUDDY_H__
 
+#include <stddef.h>
 #include <uk/alloc.h>
 
 #ifdef __cplusplus

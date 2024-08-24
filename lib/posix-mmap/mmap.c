@@ -16,7 +16,7 @@
 #include <uk/arch/lcpu.h>
 #include <uk/vmem.h>
 
-#include<oblivium/elf/core.h>
+#include<oblivium/oblivium.h>
 
 #ifndef MAP_UNINITIALIZED
 #define MAP_UNINITIALIZED 0x4000000
@@ -223,6 +223,11 @@ UK_SYSCALL_R_DEFINE(int, munmap, void *, addr, size_t, len)
 
 	if (unlikely(len == 0))
 		return -EINVAL;
+
+	rc = oblivium_handle_unmap(addr, len);
+	if (!rc){
+		return 0;
+	}
 
 	rc = uk_vma_unmap(vas, vaddr, PAGE_ALIGN_UP(len), 0);
 	if (unlikely(rc)) {
