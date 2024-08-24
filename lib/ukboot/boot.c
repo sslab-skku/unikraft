@@ -33,7 +33,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "uk/plat/io.h"
+#include <uk/allocbbuddy.h>
+#include <uk/tinyalloc.h>
 #include <uk/config.h>
 
 #ifdef CONFIG_LIBUKSEV
@@ -161,7 +162,7 @@ static struct uk_alloc *heap_init()
 	if (unlikely(rc))
 		return NULL;
 
-	a = uk_alloc_init((void *)heap_base, HEAP_INITIAL_PAGES << PAGE_SHIFT);
+	a = uk_allocbbuddy_init((void *)heap_base, HEAP_INITIAL_PAGES << PAGE_SHIFT);
 	if (unlikely(!a))
 		return NULL;
 
@@ -199,7 +200,7 @@ static struct uk_alloc *heap_init()
 	rc = uk_vma_map_anon(&kernel_vas, &vaddr,
 			     (alloc_pages + HEAP_INITIAL_PAGES) << PAGE_SHIFT,
 			     pg_attr, UK_VMA_MAP_UNINITIALIZED,
-			     "heap");
+			     "init_heap");
 	if (unlikely(rc))
 		return NULL;
 
@@ -211,9 +212,9 @@ static struct uk_alloc *heap_init()
 
 
 #if CONFIG_OBLIVIUM_HEAP
-	    uk_alloc_unregister(a);
+	uk_alloc_unregister(a);
 	/* We now initialize the real heap allocator that is used by rest of the
-	  *program. A new
+	  *
 	 **/
 	/* TODO: need to somehow process existing mappings */
 	/* Just gonna exclude them from oblivious mappings  for now */
@@ -226,7 +227,7 @@ static struct uk_alloc *heap_init()
 	if (unlikely(rc))
 		return NULL;
 
-	a = uk_alloc_init((void *)vaddr,
+	a = uk_tinyalloc_init((void *)vaddr,
 			  alloc_pages << PAGE_SHIFT);
 	if (unlikely(!a))
 		return NULL;
