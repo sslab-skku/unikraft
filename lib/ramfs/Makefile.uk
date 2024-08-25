@@ -1,4 +1,6 @@
 $(eval $(call addlib_s,libramfs,$(CONFIG_LIBRAMFS)))
 
-LIBRAMFS_SRCS-y += $(LIBRAMFS_BASE)/ramfs_vfsops.c
-LIBRAMFS_SRCS-y += $(LIBRAMFS_BASE)/ramfs_vnops.c
+LIBRAMFS_SRCS-y += $(LIBRAMFS_BASE)/ramfs_vfsops.c|isr
+LIBRAMFS_SRCS-y += $(LIBRAMFS_BASE)/ramfs_vnops.c|isr
+
+LIBRAMFS_LDFLAGS-$(CONFIG_OBLIVIUM) += -Wl,-T,$(CONFIG_UK_BASE)/isr.ld

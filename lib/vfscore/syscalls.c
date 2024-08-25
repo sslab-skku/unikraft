@@ -37,6 +37,7 @@
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE
+#include "oblivium/oblivium.h"
 #include <uk/config.h>
 #include <limits.h>
 #include <unistd.h>
@@ -329,7 +330,7 @@ sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	 *  iov_len fields when it writes to disk, so we have to copy iov.
 	 */
 	/* std::vector<iovec> copy_iov(iov, iov + niov); */
-	copy_iov = calloc(sizeof(struct iovec), niov);
+	copy_iov = uk_calloc(oblivium_get_unsafe_allocator(),sizeof(struct iovec), niov);
 	if (!copy_iov)
 		return ENOMEM;
 	memcpy(copy_iov, iov, sizeof(struct iovec)*niov);
