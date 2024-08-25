@@ -201,10 +201,13 @@ UK_SYSCALL_DEFINE(void *, mmap, void *, addr, size_t, len, int, prot,
 		  int, flags, int, fd, off_t, offset)
 {
 	int rc;
+
+#if CONFIG_OBLIVIUM_HOOK_MMAP
 	rc = oblivium_handle_mmap(fd, &addr, len, offset, prot, flags);
-	if (!rc){
+	if (!rc) {
 		return addr;
 	}
+#endif
 
 	rc = do_mmap(&addr, len, prot, flags, fd, offset);
 	if (unlikely(rc)) {
@@ -224,10 +227,12 @@ UK_SYSCALL_R_DEFINE(int, munmap, void *, addr, size_t, len)
 	if (unlikely(len == 0))
 		return -EINVAL;
 
+#if CONFIG_OBLIVIUM_HOOK_MMAP
 	rc = oblivium_handle_unmap(addr, len);
-	if (!rc){
+	if (!rc) {
 		return 0;
 	}
+#endif
 
 	rc = uk_vma_unmap(vas, vaddr, PAGE_ALIGN_UP(len), 0);
 	if (unlikely(rc)) {
