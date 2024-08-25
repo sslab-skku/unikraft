@@ -309,7 +309,7 @@ struct uk_sched *uk_schedcoop_create(struct uk_alloc *a)
 	rc = uk_thread_init_fn1(&c->idle,
 				idle_thread_fn, (void *) c,
 				a, STACK_SIZE,
-#if CONFIG_OBLIVIUM // TLS uses the safe allocator I guess
+#if CONFIG_OBLIVIUM_HEAP // TLS uses the safe allocator I guess
 				oblivium_get_allocator(), false,
 #else
 				a, false,
@@ -333,7 +333,7 @@ struct uk_sched *uk_schedcoop_create(struct uk_alloc *a)
 			schedcoop_idle_thread,
 			a);
 
-#if CONFIG_OBLIVIUM
+#if CONFIG_OBLIVIUM_HEAP
 	c->sched.a = oblivium_get_allocator();
 	c->sched.a_uktls = oblivium_get_allocator();
 #endif
