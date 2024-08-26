@@ -6,6 +6,7 @@
 
 // #define UK_DEBUG
 //
+#include "oblivium/oblivium.h"
 #include "uk/spinlock.h"
 
 #include "uk/asm/sev.h"
@@ -88,6 +89,8 @@ struct ghcb *uk_sev_get_ghcb_page()
 	return &ghcb_page;
 }
 
+extern struct sev_es_save_area dummy_vmsa __align(__PAGE_SIZE);
+
 int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2)
 {
@@ -106,8 +109,12 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	// vmgexit();
 	// __u64 ret = uk_sev_ghcb_msr_invoke(ukplat_virt_to_phys(ghcb));
 	// HACK: We are using a single ghcb so no problem here.
+
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
+#if CONFIG_OBLIVIUM_SCHED_FILTER_NAE
+	dummy_vmsa.guest_exit_code = SVM_VMEXIT_NONESKIP;
+#endif
 	/* TODO: Verify VMM return */
 	local_irq_restore(flags);
 	return 0;
@@ -949,6 +956,8 @@ static inline void spinlock_counted(struct uk_spinlock *lock)
 			uk_sev_terminate(7, 7);
 	}
 }
+
+
 static int uk_sev_handle_vc(void *data)
 {
 	int count = 0;
