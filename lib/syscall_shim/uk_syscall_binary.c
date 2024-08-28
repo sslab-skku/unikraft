@@ -33,6 +33,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "uk/sev.h"
+#include "uk/asm/svm.h"
+
 #include <uk/syscall.h>
 #include <uk/plat/syscall.h>
 #include <uk/arch/ctx.h>
@@ -47,8 +50,12 @@
 #include <uk/plat/console.h> /* ukplat_coutk */
 #endif /* CONFIG_LIBSYSCALL_SHIM_STRACE */
 
+
 void ukplat_syscall_handler(struct __regs *r)
 {
+#if CONFIG_EXIT_FOR_PERF
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PERF, 0, 0);
+#endif
 #if CONFIG_LIBSYSCALL_SHIM_HANDLER_ULTLS
 	struct uk_thread *self;
 	__uptr orig_tlsp;
