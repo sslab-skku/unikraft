@@ -36,6 +36,8 @@
 
 #define _GNU_SOURCE
 
+#include "uk/asm/svm.h"
+#include "uk/sev.h"
 #include <sys/types.h>
 #include <uk/socket.h>
 #include <uk/errptr.h>
@@ -615,6 +617,9 @@ UK_SYSCALL_R_DEFINE(int, socketpair, int, family, int, type, int, protocol,
 	void *usockdata[2];
 	int vfs_fd1, vfs_fd2;
 	int ret;
+
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_BOOT_DONE, 0,
+			     0);
 
 	trace_posix_socket_socketpair(family, type, protocol, usockfd);
 
