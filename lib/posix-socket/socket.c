@@ -618,7 +618,7 @@ UK_SYSCALL_R_DEFINE(int, socketpair, int, family, int, type, int, protocol,
 	int vfs_fd1, vfs_fd2;
 	int ret;
 
-	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_BOOT_DONE, 0,
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0,
 			     0);
 
 	trace_posix_socket_socketpair(family, type, protocol, usockfd);
