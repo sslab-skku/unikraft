@@ -53,9 +53,14 @@
 
 void ukplat_syscall_handler(struct __regs *r)
 {
-#if CONFIG_EXIT_FOR_PERF
-	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PERF, 0, 0);
+/* #if CONFIG_EXIT_FOR_PERF */
+/* 	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PERF, 0, 0); */
+/* #endif */
+
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched();
 #endif
+
 #if CONFIG_LIBSYSCALL_SHIM_HANDLER_ULTLS
 	struct uk_thread *self;
 	__uptr orig_tlsp;
@@ -134,4 +139,8 @@ void ukplat_syscall_handler(struct __regs *r)
 
 	/* Restore extended register state */
 	ukarch_ectx_load(ectx);
+
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched();
+#endif
 }
