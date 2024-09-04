@@ -22,12 +22,62 @@
 #include <vfscore/uio.h>
 #include <uk/isr/string.h>
 
+#define BASE_STEP 0x2000000UL
+__vaddr_t vino_to_base[20] =
+    {
+	CONFIG_LIBUKVMEM_FILE_BASE,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 1,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 2,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 3,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 4,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 5,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 6,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 7,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 8,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 9,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 10,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 11,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 12,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 13,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 14,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 15,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 16,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 17,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 18,
+	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 19,
+};
+
+int curr_base_idx = 0;
+int vino_map[1000] = {0};
+
 #ifdef CONFIG_LIBUKVMEM_FILE_BASE
-static __vaddr_t vma_op_file_get_base(struct uk_vas *vas __unused,
-				      void *data __unused,
-				      unsigned long flags __unused)
+static __vaddr_t
+vma_op_file_get_base(struct uk_vas * vas __unused, void *data __unused,
+		     unsigned long flags __unused)
 {
-	return CONFIG_LIBUKVMEM_FILE_BASE;
+	/* return CONFIG_LIBUKVMEM_FILE_BASE; */
+
+	struct uk_vma_file_args *args = (struct uk_vma_file_args *)data;
+	struct vfscore_file *f = vfscore_get_file(args->fd);
+
+	int vino = f->f_dentry->d_vnode->v_ino;
+	unsigned long id;
+	if (vino_map[vino] != 0)
+		id = vino_map[vino];
+	else {
+		vino_map[vino] = curr_base_idx;
+		id = curr_base_idx;
+		curr_base_idx++;
+	}
+
+	uk_pr_info("getbase %s: vino %d, %lu, 0x%lx\n", f->f_dentry->d_path,
+		   vino, id, vino_to_base[id]);
+	UK_ASSERT(id >= 0
+		  && id < sizeof(vino_to_base) / sizeof(vino_to_base[0]));
+	fdrop(f);
+	return vino_to_base[id];
+	/* return CONFIG_LIBUKVMEM_FILE_BASE; */
+	/* return CONFIG_LIBUKVMEM_FILE_BASE; */
 }
 #endif /* CONFIG_LIBUKVMEM_FILE_BASE */
 
