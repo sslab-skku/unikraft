@@ -7,6 +7,7 @@
 // #define UK_DEBUG
 //
 #include "oblivium/oblivium.h"
+#include "oblivium/sched.h"
 #include "uk/spinlock.h"
 
 #include "uk/asm/sev.h"
@@ -110,6 +111,10 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	// __u64 ret = uk_sev_ghcb_msr_invoke(ukplat_virt_to_phys(ghcb));
 	// HACK: We are using a single ghcb so no problem here.
 
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched();
+#endif
+
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
 #if CONFIG_OBLIVIUM_SCHED_FILTER_NAE
@@ -119,6 +124,33 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	local_irq_restore(flags);
 	return 0;
 };
+
+// Called in sched.c
+int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode,
+				  __u64 exitinfo1, __u64 exitinfo2)
+{
+
+	unsigned long flags;
+	local_irq_save(flags);
+
+	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitcode, exitcode);
+	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitinfo1, exitinfo1);
+	GHCB_SAVE_AREA_SET_FIELD(ghcb, sw_exitinfo2, exitinfo2);
+	ghcb->ghcb_usage = SEV_GHCB_USAGE_DEFAULT;
+
+	/* TODO: Negotiate ghcb protocol version */
+	/* ghcb->protocol_version = 1; */
+	// uk_sev_ghcb_wrmsrl(ukplat_virt_to_phys(ghcb));
+	// vmgexit();
+	// __u64 ret = uk_sev_ghcb_msr_invoke(ukplat_virt_to_phys(ghcb));
+	// HACK: We are using a single ghcb so no problem here.
+
+	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
+
+	/* TODO: Verify VMM return */
+	local_irq_restore(flags);
+	return 0;
+}
 
 static inline int _uk_sev_ghcb_cpuid_reg(int reg_idx, int fn, __u32 *reg)
 {
@@ -159,7 +191,8 @@ static inline int uk_sev_ghcb_cpuid(__u32 fn, __unused __u32 sub_fn, __u32 *eax,
  */
 // #define SERIAL_PRINTF 1
 
-void uk_sev_serial_print(struct ghcb *ghcb, const char* buf ){
+void uk_sev_serial_print(struct ghcb *ghcb, const char *buf)
+{
 	unsigned long orig_rax, orig_rdx, orig_rax_valid, orig_rdx_valid;
 	__u64 exitinfo1 = 0;
 	exitinfo1 |= UK_SEV_IOIO_TYPE_OUT;
@@ -956,7 +989,6 @@ static inline void spinlock_counted(struct uk_spinlock *lock)
 			uk_sev_terminate(7, 7);
 	}
 }
-
 
 static int uk_sev_handle_vc(void *data)
 {

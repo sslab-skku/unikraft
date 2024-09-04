@@ -61,4 +61,7 @@ void uk_sev_serial_print(struct ghcb *ghcb, const char *buf);
 int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2);
 
+int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
+			 __u64 exitinfo2);
+
 #endif /* __UK_SEV_H__ */

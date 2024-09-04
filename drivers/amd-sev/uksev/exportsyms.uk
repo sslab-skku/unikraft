@@ -1,5 +1,6 @@
 uk_sev_mem_encrypt_init
 uk_sev_ghcb_vmm_call
+uk_sev_ghcb_vmm_call_in_sched
 uk_sev_early_vc_handler_init
 uk_sev_setup_ghcb
 uk_sev_terminate
