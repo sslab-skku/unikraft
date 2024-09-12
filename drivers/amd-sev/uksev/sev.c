@@ -50,7 +50,7 @@ struct uk_spinlock ghcb_lock;
 struct uk_spinlock ghcb_msr_lock;
 
 /* Debug printing is only available after GHCB is initialized. */
-int ghcb_initialized = 1;
+int ghcb_initialized = 0;
 
 static inline void uk_sev_ghcb_wrmsrl(__u64 value)
 {
@@ -111,9 +111,6 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	// __u64 ret = uk_sev_ghcb_msr_invoke(ukplat_virt_to_phys(ghcb));
 	// HACK: We are using a single ghcb so no problem here.
 
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched();
-#endif
 
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
@@ -125,11 +122,11 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	return 0;
 };
 
-// Called in sched.c
+// Called in sched.c to avoid circular calls
 int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode,
 				  __u64 exitinfo1, __u64 exitinfo2)
 {
-
+	/* Maybe called even when ghcb is not initialized yet */
 	unsigned long flags;
 	local_irq_save(flags);
 
@@ -996,6 +993,10 @@ static int uk_sev_handle_vc(void *data)
 
 	uk_spin_lock(&ghcb_lock);
 	struct ukarch_trap_ctx *ctx = (struct ukarch_trap_ctx *)data;
+
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched_kernel();
+#endif
 
 	int exit_code = ctx->error_code;
 	struct ghcb *ghcb = &ghcb_page;

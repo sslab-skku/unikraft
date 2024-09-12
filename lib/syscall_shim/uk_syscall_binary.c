@@ -33,6 +33,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "oblivium/sched.h"
 #include "uk/sev.h"
 #include "uk/asm/svm.h"
 
@@ -57,9 +58,6 @@ void ukplat_syscall_handler(struct __regs *r)
 /* 	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PERF, 0, 0); */
 /* #endif */
 
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched();
-#endif
 
 #if CONFIG_LIBSYSCALL_SHIM_HANDLER_ULTLS
 	struct uk_thread *self;
@@ -97,15 +95,24 @@ void ukplat_syscall_handler(struct __regs *r)
 	/* uk_syscall6_r() will clear _uk_syscall_return_addr on return */
 	_uk_syscall_return_addr = r->rip;
 
+
 #if CONFIG_LIBSYSCALL_SHIM_DEBUG_HANDLER
 	_uk_printd(uk_libid_self(), __STR_BASENAME__, __LINE__,
 			"Binary system call request \"%s\" (%lu) at ip:%p (arg0=0x%lx, arg1=0x%lx, ...)\n",
 		    uk_syscall_name(r->rsyscall), r->rsyscall,
 		    (void *) r->rip, r->rarg0, r->rarg1);
 #endif /* CONFIG_LIBSYSCALL_SHIM_DEBUG_HANDLER */
+
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched_kernel();
+#endif
 	r->rret0 = uk_syscall6_r(r->rsyscall,
 				 r->rarg0, r->rarg1, r->rarg2,
 				 r->rarg3, r->rarg4, r->rarg5);
+
+#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
+	incog_sched_kernel();
+#endif
 #if CONFIG_LIBSYSCALL_SHIM_STRACE
 	prsyscalllen = uk_snprsyscall(prsyscallbuf, ARRAY_SIZE(prsyscallbuf),
 #if CONFIG_LIBSYSCALL_SHIM_STRACE_ANSI_COLOR
@@ -140,7 +147,4 @@ void ukplat_syscall_handler(struct __regs *r)
 	/* Restore extended register state */
 	ukarch_ectx_load(ectx);
 
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched();
-#endif
 }
