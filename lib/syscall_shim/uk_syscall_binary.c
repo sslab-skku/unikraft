@@ -51,6 +51,8 @@
 #include <uk/plat/console.h> /* ukplat_coutk */
 #endif /* CONFIG_LIBSYSCALL_SHIM_STRACE */
 
+#define REPORT_SYSCALL_START 0x901
+#define REPORT_SYSCALL_END   0x902
 
 void ukplat_syscall_handler(struct __regs *r)
 {
@@ -106,12 +108,22 @@ void ukplat_syscall_handler(struct __regs *r)
 #if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
 	incog_sched_kernel();
 #endif
+
+#if CONFIG_OBLIVIUM_PROFILE_SYSCALL_TICKS
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK,
+			      REPORT_SYSCALL_START, r->rsyscall);
+#endif
 	r->rret0 = uk_syscall6_r(r->rsyscall,
 				 r->rarg0, r->rarg1, r->rarg2,
 				 r->rarg3, r->rarg4, r->rarg5);
 
 #if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
 	incog_sched_kernel();
+#endif
+
+#if CONFIG_OBLIVIUM_PROFILE_SYSCALL_TICKS
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK,
+			      REPORT_SYSCALL_END, r->rsyscall);
 #endif
 #if CONFIG_LIBSYSCALL_SHIM_STRACE
 	prsyscalllen = uk_snprsyscall(prsyscallbuf, ARRAY_SIZE(prsyscallbuf),
