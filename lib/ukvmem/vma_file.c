@@ -22,7 +22,7 @@
 #include <vfscore/uio.h>
 #include <uk/isr/string.h>
 
-#define BASE_STEP 0x2000000UL
+#define BASE_STEP 0x10000000UL
 __vaddr_t vino_to_base[20] =
     {
 	CONFIG_LIBUKVMEM_FILE_BASE,
@@ -47,7 +47,7 @@ __vaddr_t vino_to_base[20] =
 	CONFIG_LIBUKVMEM_FILE_BASE + BASE_STEP * 19,
 };
 
-int curr_base_idx = 0;
+int curr_base_idx = 1;
 int vino_map[1000] = {0};
 
 #ifdef CONFIG_LIBUKVMEM_FILE_BASE
