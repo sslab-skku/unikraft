@@ -160,7 +160,7 @@ EXIT_ERR_CLOSE:
 EXIT_ERR_PUT:
 	vfscore_put_file(file->vfs_file);
 EXIT_ERR:
-	PSOCKET_ERR("accept on socket %d failed: %d\n", sock, ret);
+	/* PSOCKET_ERR("accept on socket %d failed: %d\n", sock, ret); */
 	trace_posix_socket_accept_err(ret);
 	return ret;
 }
