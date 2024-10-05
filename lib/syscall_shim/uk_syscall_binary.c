@@ -109,10 +109,16 @@ void ukplat_syscall_handler(struct __regs *r)
 	incog_sched_kernel();
 #endif
 
+// uk_pr_crit("System call %s (%lu) started\n",
+// 		uk_syscall_name(r->rsyscall), r->rsyscall);
+
+#if CONFIG_OBLIVIUM_PROFILE_SCHED
 #if CONFIG_OBLIVIUM_PROFILE_SYSCALL_TICKS
 	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK,
 			      REPORT_SYSCALL_START, r->rsyscall);
 #endif
+#endif
+
 	r->rret0 = uk_syscall6_r(r->rsyscall,
 				 r->rarg0, r->rarg1, r->rarg2,
 				 r->rarg3, r->rarg4, r->rarg5);
@@ -121,10 +127,13 @@ void ukplat_syscall_handler(struct __regs *r)
 	incog_sched_kernel();
 #endif
 
+#if CONFIG_OBLIVIUM_PROFILE_SCHED
 #if CONFIG_OBLIVIUM_PROFILE_SYSCALL_TICKS
 	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK,
 			      REPORT_SYSCALL_END, r->rsyscall);
 #endif
+#endif
+
 #if CONFIG_LIBSYSCALL_SHIM_STRACE
 	prsyscalllen = uk_snprsyscall(prsyscallbuf, ARRAY_SIZE(prsyscallbuf),
 #if CONFIG_LIBSYSCALL_SHIM_STRACE_ANSI_COLOR

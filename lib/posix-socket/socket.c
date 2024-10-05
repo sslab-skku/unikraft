@@ -104,6 +104,8 @@ UK_TRACEPOINT(trace_posix_socket_accept, "%d %p %p", int,
 UK_TRACEPOINT(trace_posix_socket_accept_ret, "%d", int);
 UK_TRACEPOINT(trace_posix_socket_accept_err, "%d", int);
 
+
+static int called_flag = 0;
 int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 	       int flags)
 {
@@ -112,6 +114,13 @@ int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 	void *new_sock;
 	int vfs_fd;
 	int ret;
+
+#if CONFIG_OBLIVIUM_PROFILE_SCHED
+	if(called_flag == 0){
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0, 0);
+		called_flag = 1;
+	}
+#endif
 
 	trace_posix_socket_accept(sock, addr, addr_len);
 

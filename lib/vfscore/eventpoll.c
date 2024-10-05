@@ -409,6 +409,7 @@ int eventpoll_wait(struct eventpoll *ep, struct epoll_event *events,
 				 */
 				uk_list_del_init(&efd->tr_link);
 			}
+			// incog_sched_kernel(); // testing in kernel sched ticks
 		}
 
 		if (n > 0)
