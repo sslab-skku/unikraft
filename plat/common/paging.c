@@ -584,10 +584,14 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 					if (!mapx)
 						return -EEXIST;
 #if CONFIG_OBLIVIUM
-					oblivium_page_split(
-					    pt, pt_vaddr,
-					    PAGE_Lx_ALIGN_DOWN(vaddr, lvl),
-					    level);
+/* #if 0 */
+					/* oblivium_page_split( */
+					/*     pt, pt_vaddr, */
+					/*     PAGE_Lx_ALIGN_DOWN(vaddr, lvl), */
+					/*     level); */
+
+					oblivium_page_split(pt, pt_vaddr, vaddr,
+							    lvl);
 #else
 					rc = pg_page_split(pt, pt_vaddr, vaddr,
 							   lvl);

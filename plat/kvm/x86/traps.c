@@ -62,7 +62,7 @@
 __align(STACK_SIZE) /* IST1 */
 char cpu_intr_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
 __align(STACK_SIZE) /* IST2 */
-char cpu_trap_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
+char cpu_trap_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE * 2];
 __align(STACK_SIZE) /* IST3 */
 char cpu_crit_stack[CONFIG_UKPLAT_LCPU_MAXCOUNT][STACK_SIZE];
 __align(STACK_SIZE) /* IST3 */
