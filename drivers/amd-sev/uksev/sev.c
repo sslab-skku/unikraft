@@ -115,7 +115,9 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
 #if CONFIG_OBLIVIUM_SCHED_FILTER_NAE
-	dummy_vmsa.guest_exit_code = SVM_VMEXIT_NONESKIP;
+	if (dummy_vmsa.guest_exit_code == SVM_VMEXIT_NONE) {
+		dummy_vmsa.guest_exit_code = SVM_VMEXIT_NONESKIP;
+	}
 #endif
 	/* TODO: Verify VMM return */
 	local_irq_restore(flags);
@@ -994,9 +996,11 @@ static int uk_sev_handle_vc(void *data)
 	uk_spin_lock(&ghcb_lock);
 	struct ukarch_trap_ctx *ctx = (struct ukarch_trap_ctx *)data;
 
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched_kernel();
-#endif
+/* #if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS */
+	// NOTE: this may causes infinite loops if we print something in this tick.
+	/* if (!is_in_tick() ) */
+	/* 	incog_sched_kernel(); */
+/* #endif */
 
 	int exit_code = ctx->error_code;
 	struct ghcb *ghcb = &ghcb_page;
