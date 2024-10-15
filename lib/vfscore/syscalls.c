@@ -35,6 +35,7 @@
  *                  a VFS system call.
  */
 
+#include "oblivium/sched.h"
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 #include "oblivium/oblivium.h"
@@ -252,6 +253,7 @@ int
 sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 		off_t offset, size_t *count)
 {
+	incog_sched_kernel();
 	int error = 0;
 	struct iovec *copy_iov;
 	if ((fp->f_flags & UK_FREAD) == 0)
@@ -281,7 +283,9 @@ sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	 *  zeros the iov_len fields when it reads from disk, so we
 	 *  have to copy iov. "
 	 */
-	copy_iov = calloc(sizeof(struct iovec), niov);
+	copy_iov = uk_calloc(oblivium_get_unsafe_allocator(),
+			     sizeof(struct iovec), niov);
+	/* copy_iov = calloc(sizeof(struct iovec), niov); */
 	if (!copy_iov)
 		return ENOMEM;
 	memcpy(copy_iov, iov, sizeof(struct iovec)*niov);
@@ -295,6 +299,7 @@ sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	*count = bytes - uio.uio_resid;
 
 	free(copy_iov);
+	incog_sched_kernel();
 	return error;
 }
 
@@ -302,6 +307,7 @@ int
 sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 		off_t offset, size_t *count)
 {
+	incog_sched_kernel();
 	struct iovec *copy_iov;
 	int error = 0;
 	if ((fp->f_flags & UK_FWRITE) == 0)
@@ -330,7 +336,8 @@ sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	 *  iov_len fields when it writes to disk, so we have to copy iov.
 	 */
 	/* std::vector<iovec> copy_iov(iov, iov + niov); */
-	copy_iov = uk_calloc(oblivium_get_unsafe_allocator(),sizeof(struct iovec), niov);
+	copy_iov = uk_calloc(oblivium_get_unsafe_allocator(),
+			     sizeof(struct iovec), niov);
 	if (!copy_iov)
 		return ENOMEM;
 	memcpy(copy_iov, iov, sizeof(struct iovec)*niov);
@@ -344,6 +351,7 @@ sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	*count = bytes - uio.uio_resid;
 
 	free(copy_iov);
+	incog_sched_kernel();
 	return error;
 }
 
