@@ -34,6 +34,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "oblivium/oblivium.h"
 #include "uk/isr/string.h"
 #define _GNU_SOURCE
 
@@ -166,6 +167,7 @@ ERR_EXIT:
 	return ret;
 }
 
+extern int socket_count;
 static int
 posix_socket_vfscore_close(struct vnode *vnode,
 			   struct vfscore_file *fp __maybe_unused)
@@ -187,6 +189,12 @@ posix_socket_vfscore_close(struct vnode *vnode,
 		PSOCKET_ERR("close on socket %d failed: %d\n", fp->fd, ret);
 		return -ret;
 	}
+	socket_count++;
+	/* uk_pr_info("close%d\n", socket_count); */
+	/* if (socket_count % 1000){ */
+	/* 	oblivium_print_oram_stat(); */
+	/* 	oblivium_reset_oram_stat(); */
+	/* } */
 
 	return 0;
 }
