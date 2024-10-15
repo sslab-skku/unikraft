@@ -115,7 +115,7 @@ int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 	int vfs_fd;
 	int ret;
 
-#if CONFIG_OBLIVIUM_PROFILE_SCHED
+#if CONFIG_OBLIVIUM_PROFILE_SCHED || CONFIG_EXIT_FOR_PERF
 	if(called_flag == 0){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0, 0);
 		called_flag = 1;
@@ -627,8 +627,8 @@ UK_SYSCALL_R_DEFINE(int, socketpair, int, family, int, type, int, protocol,
 	int vfs_fd1, vfs_fd2;
 	int ret;
 
-	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0,
-			     0);
+	// uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0,
+	// 		     0);
 
 	trace_posix_socket_socketpair(family, type, protocol, usockfd);
 
