@@ -118,9 +118,13 @@ int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 #if CONFIG_OBLIVIUM_PROFILE_SCHED || CONFIG_EXIT_FOR_PERF
 	if(called_flag == 0){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0, 0);
+#if CONFIG_OBLIVIUM_ENABLE_NGINX_PROFILING_NPF
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_START, 3, 0);
+#endif
 		called_flag = 1;
 	}
 #endif
+
 
 	trace_posix_socket_accept(sock, addr, addr_len);
 
