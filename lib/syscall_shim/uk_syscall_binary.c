@@ -105,10 +105,6 @@ void ukplat_syscall_handler(struct __regs *r)
 		    (void *) r->rip, r->rarg0, r->rarg1);
 #endif /* CONFIG_LIBSYSCALL_SHIM_DEBUG_HANDLER */
 
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched_kernel();
-#endif
-
 // uk_pr_crit("System call %s (%lu) started\n",
 // 		uk_syscall_name(r->rsyscall), r->rsyscall);
 
@@ -122,10 +118,6 @@ void ukplat_syscall_handler(struct __regs *r)
 	r->rret0 = uk_syscall6_r(r->rsyscall,
 				 r->rarg0, r->rarg1, r->rarg2,
 				 r->rarg3, r->rarg4, r->rarg5);
-
-#if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS
-	incog_sched_kernel();
-#endif
 
 #if CONFIG_OBLIVIUM_PROFILE_SCHED
 #if CONFIG_OBLIVIUM_PROFILE_SYSCALL_TICKS

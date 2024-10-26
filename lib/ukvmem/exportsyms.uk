@@ -14,3 +14,6 @@ uk_vma_dma_ops
 uk_vma_file_ops
 uk_vma_rsvd_ops
 uk_vma_stack_ops
+
+curr_base_idx
+vino_map
