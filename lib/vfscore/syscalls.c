@@ -253,7 +253,6 @@ int
 sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 		off_t offset, size_t *count)
 {
-	incog_sched_kernel();
 	int error = 0;
 	struct iovec *copy_iov;
 	if ((fp->f_flags & UK_FREAD) == 0)
@@ -299,7 +298,6 @@ sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	*count = bytes - uio.uio_resid;
 
 	free(copy_iov);
-	incog_sched_kernel();
 	return error;
 }
 
@@ -307,7 +305,6 @@ int
 sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 		off_t offset, size_t *count)
 {
-	incog_sched_kernel();
 	struct iovec *copy_iov;
 	int error = 0;
 	if ((fp->f_flags & UK_FWRITE) == 0)
@@ -351,7 +348,6 @@ sys_write(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	*count = bytes - uio.uio_resid;
 
 	free(copy_iov);
-	incog_sched_kernel();
 	return error;
 }
 

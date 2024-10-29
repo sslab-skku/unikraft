@@ -60,7 +60,6 @@ int vfs_close(struct vfscore_file *fp)
 
 int vfs_read(struct vfscore_file *fp, struct uio *uio, int flags)
 {
-	incog_sched_kernel();
 	struct vnode *vp = fp->f_dentry->d_vnode;
 	int error;
 	size_t count;
@@ -80,14 +79,12 @@ int vfs_read(struct vfscore_file *fp, struct uio *uio, int flags)
 			fp->f_offset += count;
 	}
 	vn_unlock(vp);
-	incog_sched_kernel();
 	return error;
 }
 
 
 int vfs_write(struct vfscore_file *fp, struct uio *uio, int flags)
 {
-	incog_sched_kernel();
 	struct vnode *vp = fp->f_dentry->d_vnode;
 	int ioflags = 0;
 	int error;
@@ -115,7 +112,6 @@ int vfs_write(struct vfscore_file *fp, struct uio *uio, int flags)
 	}
 
 	vn_unlock(vp);
-	incog_sched_kernel();
 	return error;
 }
 

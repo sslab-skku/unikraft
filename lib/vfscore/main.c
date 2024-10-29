@@ -369,7 +369,6 @@ LFS64(lseek);
 static ssize_t do_preadv(struct vfscore_file *fp, const struct iovec *iov,
 			 int iovcnt, off_t offset, ssize_t *bytes)
 {
-	incog_sched_kernel();
 	size_t cnt;
 	int error;
 
@@ -382,7 +381,6 @@ static ssize_t do_preadv(struct vfscore_file *fp, const struct iovec *iov,
 		goto out_error;
 
 	*bytes = cnt;
-	incog_sched_kernel();
 	return 0;
 
 out_error:
@@ -563,7 +561,6 @@ UK_SYSCALL_R_DEFINE(ssize_t, read, int, fd, void *, buf, size_t, count)
 static int do_pwritev(struct vfscore_file *fp, const struct iovec *iov,
 		      int iovcnt, off_t offset, ssize_t *bytes)
 {
-	incog_sched_kernel();
 	int error;
 	size_t cnt;
 
@@ -576,7 +573,6 @@ static int do_pwritev(struct vfscore_file *fp, const struct iovec *iov,
 		goto out_error;
 
 	*bytes = cnt;
-	incog_sched_kernel();
 	return 0;
 
 out_error:

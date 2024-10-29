@@ -366,7 +366,6 @@ int eventpoll_wait(struct eventpoll *ep, struct epoll_event *events,
 	uk_mutex_lock(&ep->fd_lock);
 
 	for (;;) {
-		incog_sched_kernel(); // testing in kernel sched ticks
 		UK_ASSERT(n == 0);
 
 		/* Find triggered fds and poll their state. We have to redo
