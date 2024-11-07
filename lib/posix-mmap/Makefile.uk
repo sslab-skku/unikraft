@@ -13,4 +13,3 @@ ifneq ($(filter y,$(CONFIG_LIBPOSIX_MMAP_TEST) $(CONFIG_LIBUKTEST_ALL)),)
 LIBPOSIX_MMAP_SRCS-y += $(LIBPOSIX_MMAP_BASE)/tests/test_posix_mmap.c
 endif
 
-LIBPOSIX_MMAP_CFLAGS-$(CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS) += -finstrument-functions-once
