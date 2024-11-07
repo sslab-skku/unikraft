@@ -120,10 +120,10 @@ int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0, 0);
 		called_flag += 1;
 	}
-	else if(called_flag == 1){
-		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
-		called_flag += 1;
-	}
+#if CONFIG_OBLIVIUM_ENABLE_NPF == 0
+	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+
+#endif
 #endif
 #if CONFIG_OBLIVIUM_ENABLE_NPF
 	else if(called_flag == 2){
