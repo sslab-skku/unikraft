@@ -30,6 +30,7 @@
  * SUCH DAMAGE.
  */
 
+#include "uk/isr/string.h"
 #define _GNU_SOURCE
 
 #include <string.h>
@@ -47,6 +48,10 @@ static struct uk_hlist_head dentry_hash_table[DENTRY_BUCKETS];
 static UK_HLIST_HEAD(fake);
 static struct uk_mutex dentry_hash_lock = UK_MUTEX_INITIALIZER(dentry_hash_lock);
 
+#include "oblivium/oblivium.h"
+#define malloc(s) uk_malloc(oblivium_get_unsafe_allocator(), s)
+#define calloc(m, s) uk_calloc(oblivium_get_unsafe_allocator(), m, s)
+#define free(s) uk_free(oblivium_get_unsafe_allocator(), s)
 /*
  * Get the hash value from the mount point and path name.
  * XXX: replace with a better hash for 64-bit pointers.
@@ -75,7 +80,7 @@ dentry_alloc(struct dentry *parent_dp, struct vnode *vp, const char *path)
 		return NULL;
 	}
 
-	dp->d_path = strdup(path);
+	dp->d_path = strdup_isr(path);
 	if (!dp->d_path) {
 		free(dp);
 		return NULL;
@@ -143,7 +148,7 @@ dentry_move(struct dentry *dp, struct dentry *parent_dp, char *path)
 {
 	struct dentry *old_pdp = dp->d_parent;
 	char *old_path = dp->d_path;
-	char *new_path = strdup(path);
+	char *new_path = strdup_isr(path);
 
 	if (!new_path) {
 		// Fail before changing anything to the VFS

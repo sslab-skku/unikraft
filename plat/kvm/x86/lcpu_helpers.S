@@ -107,6 +107,25 @@ ldmxcsr_rval_addr:
 .endm
 
 /**
+ * Enable Advanced Vector Extensions2 (AVX). Jump to the fail label if not
+ * successful.
+ *
+ * @in: ECX according to cpuid(eax=0x1)
+ * @clobbers: RAX, RDI
+ */
+.macro LCPU_ENABLE_AVX2 fail_label
+	testl	$(X86_CPUID7_EBX_AVX2), %ecx
+	jz	\fail_label
+
+	movq	%rcx, %rdi
+	xorl	%ecx, %ecx
+	xgetbv
+	orl	$(X86_XCR0_SSE | X86_XCR0_AVX), %eax
+	xsetbv
+	movq	%rdi, %rcx
+.endm
+
+/**
  * Enable FS/GSBASE. Jump to the fail label if not successful.
  *
  * @in: EBX according to cpuid(eax=7, ecx=0)

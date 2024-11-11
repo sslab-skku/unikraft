@@ -332,6 +332,8 @@ ENTRY(lcpu_start64)
 	xorl	%ecx, %ecx
 	cpuid
 
+	// LCPU_ENABLE_AVX2 no_avx2
+// no_avx2:
 	/* Enable FS and GS base */
 	LCPU_ENABLE_FSGSBASE no_fsgsbase
 no_fsgsbase:

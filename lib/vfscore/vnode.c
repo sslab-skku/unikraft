@@ -60,6 +60,11 @@ int vttoif_tab[10] = {
 	S_IFSOCK, S_IFIFO, S_IFMT, S_IFMT
 };
 
+#include "oblivium/oblivium.h"
+#define malloc(s) uk_malloc(oblivium_get_unsafe_allocator(), s)
+#define calloc(m, s) uk_calloc(oblivium_get_unsafe_allocator(), m, s)
+#define free(s) uk_free(oblivium_get_unsafe_allocator(), s)
+
 /*
  * Memo:
  *

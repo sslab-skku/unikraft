@@ -619,6 +619,9 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 							pt_vaddr =
 							    pgarch_pt_pte_to_vaddr(
 								pt, pte, lvl);
+							pt_paddr =
+							    PT_Lx_PTE_PADDR(
+								pte, lvl);
 							// uk_pr_info("Got vaddr 0x%lx\n", pt_vaddr);
 							// uk_pr_info("Got paddr 0x%lx\n", PT_Lx_PTE_PADDR(pte, lvl));
 							goto NEXT_LEVEL;

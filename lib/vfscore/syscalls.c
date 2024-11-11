@@ -1,3 +1,5 @@
+#include "uk/isr/string.h"
+#define UK_DEBUG 1
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright (c) 2005-2007, Kohsuke Ohtani
@@ -59,6 +61,10 @@
 
 #include "vfs.h"
 #include <vfscore/fs.h>
+
+#define malloc(s) uk_malloc(oblivium_get_unsafe_allocator(), s)
+#define calloc(m, s) uk_calloc(oblivium_get_unsafe_allocator(), m, s)
+#define free(s) uk_free(oblivium_get_unsafe_allocator(), s)
 
 extern struct task *main_task;
 
@@ -282,9 +288,7 @@ sys_read(struct vfscore_file *fp, const struct iovec *iov, size_t niov,
 	 *  zeros the iov_len fields when it reads from disk, so we
 	 *  have to copy iov. "
 	 */
-	copy_iov = uk_calloc(oblivium_get_unsafe_allocator(),
-			     sizeof(struct iovec), niov);
-	/* copy_iov = calloc(sizeof(struct iovec), niov); */
+	copy_iov = calloc(sizeof(struct iovec), niov);
 	if (!copy_iov)
 		return ENOMEM;
 	memcpy(copy_iov, iov, sizeof(struct iovec)*niov);
@@ -1424,7 +1428,7 @@ sys_utimensat(int dirfd, const char *pathname, const struct timespec times[2],
 		return EINVAL;
 
 	if (pathname && pathname[0] == '/') {
-		ap = strdup(pathname);
+		ap = strdup_isr(pathname);
 		if (unlikely(!ap))
 			return ENOMEM;
 

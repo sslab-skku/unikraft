@@ -56,8 +56,10 @@
 #include <fcntl.h>
 #include <vfscore/fs.h>
 
+#include "oblivium/oblivium.h"
 #define malloc(s) uk_malloc(oblivium_get_unsafe_allocator(), s)
 #define calloc(m, s) uk_calloc(oblivium_get_unsafe_allocator(), m, s)
+#define free(s) uk_free(oblivium_get_unsafe_allocator(), s)
 
 /* 16 bits are enough for file mode as defined by POSIX, the rest we can use */
 #define RAMFS_MODEMASK 0xffff

@@ -61,6 +61,13 @@
 int	vfs_debug = VFSDB_FLAGS;
 #endif
 
+
+
+#include "oblivium/oblivium.h"
+#define malloc(s) uk_malloc(oblivium_get_unsafe_allocator(), s)
+#define calloc(m, s) uk_calloc(oblivium_get_unsafe_allocator(), m, s)
+#define free(s) uk_free(oblivium_get_unsafe_allocator(), s)
+
 /* This macro is for defining an alias of the 64bit version of a
  * syscall to the regular one. We only do this when libc-style
  * syscall wrappers are requested to be created.

@@ -22,7 +22,9 @@
 #include <vfscore/uio.h>
 #include <uk/isr/string.h>
 
-#define BASE_STEP 0x4000000UL
+/* #define BASE_STEP 0x1000000000UL */
+#define BASE_STEP 0x0010000000UL
+/* #define BASE_STEP 0x1000000000UL */
 __vaddr_t vino_to_base[20] =
     {
     0, /* Skipped */
