@@ -106,6 +106,7 @@ UK_TRACEPOINT(trace_posix_socket_accept_err, "%d", int);
 
 
 static int called_flag = 0;
+static int attack_idx  = 4;
 int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 	       int flags)
 {
@@ -116,39 +117,61 @@ int do_accept4(int sock, struct sockaddr *addr, socklen_t *addr_len,
 	int ret;
 
 #if CONFIG_OBLIVIUM_PROFILE_SCHED || CONFIG_EXIT_FOR_PERF
-	if(called_flag == 0){
+	called_flag += 1;
+	if(called_flag == 1){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_PROFILE_START, 0, 0);
-		called_flag += 1;
+#if CONFIG_OBLIVIUM_ENABLE_NGINX_PROFILING_NPF
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_START, 3, 0);
+#endif
+			
+#if CONFIG_OBLIVIUM_ENABLE_NPF
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+#endif
 	}
+
 #if CONFIG_OBLIVIUM_ENABLE_NPF == 0
 	uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+#endif
+#endif
 
-#endif
-#endif
+#define enable_SS 0
+
 #if CONFIG_OBLIVIUM_ENABLE_NPF
-	else if(called_flag == 2){
+#if enable_SS
+	else if(called_flag < attack_idx+2){
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+	}
+	else if(called_flag == attack_idx+2){
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_SS_START, 0, 0);
+	}
+	else if(called_flag ==  attack_idx+3){
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_SS_STOP, 0, 0);
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+	}
+#else
+	else if(called_flag < attack_idx){
+		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
+	}
+	else if(called_flag == attack_idx){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_START, 2, 0);
-		called_flag += 1;
 	}
-	else if(called_flag == 3){
+	else if(called_flag == attack_idx+1){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_STOP, 2, 0);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_START, 1, 0);
-		called_flag += 1;
 	}
-	else if(called_flag== 4){
+	else if(called_flag == attack_idx+2){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_NPF_STOP, 1, 0);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_SS_START, 0, 0);
-		called_flag += 1;
 	}
-	else if(called_flag == 5){
+	else if(called_flag ==  attack_idx+3){
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_SS_STOP, 0, 0);
 		uk_sev_ghcb_vmm_call(uk_sev_get_ghcb_page(), SVM_VMGEXIT_TICK, 0xff, called_flag);
-		called_flag += 1;
 	}
-
+#endif
 #endif	
 
 
