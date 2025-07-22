@@ -18,3 +18,4 @@ $(eval $(call addlib_paramprefix,libvirtio_mmio,virtio_mmio))
 endif
 
 LIBVIRTIO_MMIO_LDFLAGS-$(CONFIG_OBLIVIUM) +=	 -Wl,-T,$(CONFIG_UK_BASE)/isr.ld
+LIBVIRTIO_MMIO_CFLAGS-$(CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS) += -finstrument-functions
