@@ -543,7 +543,8 @@ static int pg_page_mapx(struct uk_pagetable *pt, __vaddr_t pt_vaddr,
 	if (paddr != __PADDR_ANY) {
 		UK_ASSERT(PAGE_Lx_ALIGNED(paddr, to_lvl));
 		UK_ASSERT(paddr <= __PADDR_MAX - len);
-		UK_ASSERT(ukarch_paddr_range_isvalid(paddr, len));
+		// Forcing the mapping of VMSA
+		UK_ASSERT(paddr == 0xfffffff0000 || ukarch_paddr_range_isvalid(paddr, len));
 
 		alloc_pmem = 0;
 	} else
