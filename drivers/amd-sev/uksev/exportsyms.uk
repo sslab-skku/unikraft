@@ -1,6 +1,7 @@
 uk_sev_mem_encrypt_init
 uk_sev_ghcb_vmm_call
 uk_sev_ghcb_vmm_call_in_sched
+dummy_vmgexit
 uk_sev_early_vc_handler_init
 uk_sev_setup_ghcb
 uk_sev_terminate
@@ -15,3 +16,5 @@ uk_sev_cwrite_bytes
 uk_sev_cread_bytes
 uk_sev_serial_printf
 uk_sev_serial_print
+get_vc_handled
+reset_vc_handled

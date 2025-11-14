@@ -63,5 +63,8 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 
 int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2);
+void dummy_vmgexit();
+bool get_vc_handled();
+void reset_vc_handled();
 
 #endif /* __UK_SEV_H__ */

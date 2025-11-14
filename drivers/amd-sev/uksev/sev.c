@@ -49,6 +49,16 @@ static __paddr_t ghcb_paddr; // Cache of GHCB
 struct uk_spinlock ghcb_lock;
 struct uk_spinlock ghcb_msr_lock;
 
+bool vc_handled = false;
+
+bool get_vc_handled(){
+	return vc_handled;
+}
+
+void reset_vc_handled(){
+	vc_handled = false;
+}
+
 /* Debug printing is only available after GHCB is initialized. */
 int ghcb_initialized = 0;
 
@@ -90,7 +100,7 @@ struct ghcb *uk_sev_get_ghcb_page()
 	return &ghcb_page;
 }
 
-extern struct sev_es_save_area dummy_vmsa __align(__PAGE_SIZE);
+/* extern struct sev_es_save_area debug_vmsa __align(__PAGE_SIZE); */
 
 int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 			 __u64 exitinfo2)
@@ -114,17 +124,12 @@ int uk_sev_ghcb_vmm_call(struct ghcb *ghcb, __u64 exitcode, __u64 exitinfo1,
 
 	__u64 ret = uk_sev_ghcb_msr_invoke(ghcb_paddr);
 
-#if CONFIG_OBLIVIUM_SCHED_FILTER_NAE
-	if (dummy_vmsa.guest_exit_code == SVM_VMEXIT_NONE) {
-		dummy_vmsa.guest_exit_code = SVM_VMEXIT_NONESKIP;
-	}
-#endif
 	/* TODO: Verify VMM return */
 	local_irq_restore(flags);
 	return 0;
 };
 
-// Called in sched.c to avoid circular calls
+// Called in sched.c uto avoid circular calls
 int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode,
 				  __u64 exitinfo1, __u64 exitinfo2)
 {
@@ -150,6 +155,17 @@ int uk_sev_ghcb_vmm_call_in_sched(struct ghcb *ghcb, __u64 exitcode,
 	local_irq_restore(flags);
 	return 0;
 }
+
+void dummy_vmgexit(){
+#define SVM_VMGEXIT_DUMMY_EXIT 0x80001112
+	GHCB_SAVE_AREA_SET_FIELD((&ghcb_page), sw_exitcode,
+				 SVM_VMGEXIT_DUMMY_EXIT);
+	GHCB_SAVE_AREA_SET_FIELD((&ghcb_page), sw_exitinfo1, 0);
+	GHCB_SAVE_AREA_SET_FIELD((&ghcb_page), sw_exitinfo2, 0);
+	(&ghcb_page)->ghcb_usage = SEV_GHCB_USAGE_DEFAULT;
+	uk_sev_ghcb_msr_invoke(ghcb_paddr);
+}
+
 
 static inline int _uk_sev_ghcb_cpuid_reg(int reg_idx, int fn, __u32 *reg)
 {
@@ -989,6 +1005,10 @@ static inline void spinlock_counted(struct uk_spinlock *lock)
 	}
 }
 
+
+
+
+
 static int uk_sev_handle_vc(void *data)
 {
 	int count = 0;
@@ -996,11 +1016,6 @@ static int uk_sev_handle_vc(void *data)
 	uk_spin_lock(&ghcb_lock);
 	struct ukarch_trap_ctx *ctx = (struct ukarch_trap_ctx *)data;
 
-/* #if CONFIG_OBLIVIUM_SCHED_KERNEL_TICKS */
-	// NOTE: this may causes infinite loops if we print something in this tick.
-	/* if (!is_in_tick() ) */
-	/* 	incog_sched_kernel(); */
-/* #endif */
 
 	int exit_code = ctx->error_code;
 	struct ghcb *ghcb = &ghcb_page;
@@ -1034,6 +1049,7 @@ static int uk_sev_handle_vc(void *data)
 		return UK_EVENT_NOT_HANDLED;
 	}
 
+	vc_handled = true;
 	uk_spin_unlock(&ghcb_lock);
 	return UK_EVENT_HANDLED;
 }
